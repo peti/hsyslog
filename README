@@ -1,7 +1,7 @@
 syslog(3) for Haskell_
 ======================
 
-:Latest Release: syslog-2004-10-14.tar.gz_
+:Latest Release: syslog-2005-02-09.tar.gz_
 :Darcs:          darcs_ get --partial http://cryp.to/syslog/
 
 Synopsis
@@ -36,6 +36,6 @@ Copyleft
 
 .. _darcs: http://abridgegame.org/darcs/
 
-.. _syslog-2004-10-14.tar.gz: http://cryp.to/syslog/syslog-2004-10-14.tar.gz
+.. _syslog-2005-02-09.tar.gz: http://cryp.to/syslog/syslog-2005-02-09.tar.gz
 
 .. _Reference Documentation: docs/index.html

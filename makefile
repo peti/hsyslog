@@ -5,7 +5,7 @@ RELEASE     := `date --iso-8601`
 DISTARCHIVE := $(PACKAGE)-$(RELEASE).tar.gz
 DISTFILES   := Syslog.hsc README
 GHCURL      := http://haskell.org/ghc/docs/latest/html/libraries
-GHCPREFIX   := /usr/local/ghc-current/share/ghc-6.3/html/libraries
+GHCPREFIX   := /usr/local/ghc-current/share/ghc-6.5/html/libraries
 GHCFLAGS    := -Wall -O
 
 .PHONY: all clean dist

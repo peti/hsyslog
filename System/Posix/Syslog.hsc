@@ -1,18 +1,18 @@
 {-# OPTIONS -fffi #-}
 {- |
    Module      :  Syslog
-   Copyright   :  (c) 2004-10-14 by Peter Simons
-   License     :  GPL2
+   Copyright   :  (c) Peter Simons
+   License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
    Portability :  Haskell 2-pre
 
    FFI bindings to Unix's @syslog(3)@. Process this file
-   with @hsc2hs@  to obtain a Haskell module.
+   with @hsc2hs@ to obtain a Haskell module.
 -}
 
-module Syslog where
+module System.Posix.Syslog where
 
 import System.IO
 import Control.Exception ( bracket_ )
@@ -22,7 +22,7 @@ import Foreign.C
 
 -- * Marshaled Data Types
 
--- |Set the priority of a message logged via `syslog`.
+-- |Log messages are prioritized.
 
 data Priority
   = Emergency   -- ^ system is unusable
@@ -44,7 +44,7 @@ instance Enum Priority where
   toEnum #{const LOG_NOTICE}  = Notice
   toEnum #{const LOG_INFO}    = Info
   toEnum #{const LOG_DEBUG}   = Debug
-  toEnum i = error ("Syslog.Priority cannot be mapped to value " ++ show i)
+  toEnum i = error (showstring "Syslog.Priority cannot be mapped from value " (show i))
 
   fromEnum Emergency = #{const LOG_EMERG}
   fromEnum Alert     = #{const LOG_ALERT}
@@ -55,14 +55,12 @@ instance Enum Priority where
   fromEnum Info      = #{const LOG_INFO}
   fromEnum Debug     = #{const LOG_DEBUG}
 
--- |Syslog knows different types of system facilities. This
--- information is usually used to channel mesages into
--- different log files, etc. If in doubt, 'USER' is the best
--- choice (and the system's default).
+-- |Syslog distinguishes various system facilities. Most
+-- applications should log in 'USER'.
 
 data Facility
   = KERN        -- ^ kernel messages
-  | USER        -- ^ random user-level messages
+  | USER        -- ^ user-level messages (default unless set otherwise)
   | MAIL        -- ^ mail system
   | DAEMON      -- ^ system daemons
   | AUTH        -- ^ security\/authorization messages
@@ -199,14 +197,14 @@ safeMsg ( x :xs) = x : safeMsg xs
 
 -- * Low-level C functions
 
-foreign import ccall safe "closelog" _closelog ::
+foreign import ccall unsafe "closelog" _closelog ::
   IO ()
 
-foreign import ccall safe "openlog" _openlog ::
+foreign import ccall unsafe "openlog" _openlog ::
   CString -> CInt -> CInt -> IO ()
 
-foreign import ccall safe "setlogmask" _setlogmask ::
+foreign import ccall unsafe "setlogmask" _setlogmask ::
   CInt -> IO CInt
 
-foreign import ccall safe "syslog" _syslog ::
+foreign import ccall unsafe "syslog" _syslog ::
   CInt -> CString -> IO ()
