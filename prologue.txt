@@ -1,0 +1,2 @@
+This package provides FFI bindings to the POSIX.1-2001 system
+logger, syslog(3).
