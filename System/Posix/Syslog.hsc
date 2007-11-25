@@ -44,7 +44,7 @@ instance Enum Priority where
   toEnum #{const LOG_NOTICE}  = Notice
   toEnum #{const LOG_INFO}    = Info
   toEnum #{const LOG_DEBUG}   = Debug
-  toEnum i = error (showstring "Syslog.Priority cannot be mapped from value " (show i))
+  toEnum i = error (showString "Syslog.Priority cannot be mapped from value " (show i))
 
   fromEnum Emergency = #{const LOG_EMERG}
   fromEnum Alert     = #{const LOG_ALERT}
