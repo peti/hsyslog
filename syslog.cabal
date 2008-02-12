@@ -7,5 +7,6 @@ Maintainer:     simons@cryp.to
 Homepage:       http://cryp.to/syslog/
 Description:    FFI interface to syslog(3) from POSIX.1-2001.
 Build-Depends:  base
+Extensions:     ForeignFunctionInterface
 Exposed-Modules:
   System.Posix.Syslog
