@@ -1,12 +1,12 @@
-{-# OPTIONS -fffi #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 {- |
-   Module      :  Syslog
-   Copyright   :  (c) Peter Simons
+   Module      :  System.Posix.Syslog
+   Copyright   :  (c) 2008 Peter Simons
    License     :  BSD3
 
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
-   Portability :  Haskell 2-pre
+   Portability :  Posix
 
    FFI bindings to Unix's @syslog(3)@. Process this file
    with @hsc2hs@ to obtain a Haskell module.
