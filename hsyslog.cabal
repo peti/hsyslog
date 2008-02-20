@@ -4,9 +4,10 @@ Author:         Peter Simons <simons@cryp.to>
 License:        BSD3
 License-file:   LICENSE
 Maintainer:     simons@cryp.to
-Homepage:       http://cryp.to/syslog/
+Homepage:       http://cryp.to/hsyslog/
 Description:    FFI interface to syslog(3) from POSIX.1-2001.
 Build-Depends:  base
+Build-Type:     Simple
 Extensions:     ForeignFunctionInterface
 Exposed-Modules:
   System.Posix.Syslog
