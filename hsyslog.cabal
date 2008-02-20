@@ -1,8 +1,8 @@
-Name:           syslog
-Version:        1.1
+Name:           hsyslog
+Version:        1.2
 Author:         Peter Simons <simons@cryp.to>
 License:        BSD3
-License-file:	LICENSE
+License-file:   LICENSE
 Maintainer:     simons@cryp.to
 Homepage:       http://cryp.to/syslog/
 Description:    FFI interface to syslog(3) from POSIX.1-2001.
