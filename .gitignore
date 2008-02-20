@@ -2,9 +2,12 @@
 /.setup-config
 /GNUmakefile
 /Setup.lhs
+/Setup.hi
+/Setup.o
+/Setup
 /System/Posix/Syslog.hs
 /_darcs
 /dist
 /docs
 /index.html
-/syslog-*.tar.gz
+/hsyslog-*.tar.gz

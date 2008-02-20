@@ -1,23 +1,22 @@
 syslog(3) for Haskell_
 ======================
 
-:Latest Release: syslog-1.1.tar.gz_
-:Darcs:          darcs_ get --partial http://cryp.to/syslog/
+:Latest Release: hsyslog-1.2.tar.gz_
+:Darcs:          darcs_ get --partial http://cryp.to/hsyslog/
 
 Synopsis
 --------
 
-  The ``Syslog.hs`` modules provides FFI bindings to
-  ``syslog(3)``. The bindings are somewhat incomplete, i.e. there
-  is no way to set log-masks. Patches are welcome. Process the
-  file with ``hsc2hs`` to obtain a usable Haskell module.
+  This modules provides FFI bindings to ``syslog(3)``. The
+  bindings are somewhat incomplete, i.e. there is no way to set
+  log-masks. Patches are welcome. Process the file with
+  ``hsc2hs`` to obtain a usable Haskell module.
 
 Documentation
 -------------
 
   `Reference Documentation`_
-     Haddock-generated reference of all exported
-     functions.
+     Haddock-generated reference of all exported functions.
 
 Copyleft
 --------
@@ -34,6 +33,6 @@ Copyleft
 
 .. _darcs: http://abridgegame.org/darcs/
 
-.. _syslog-1.1.tar.gz: http://cryp.to/syslog/syslog-1.1.tar.gz
+.. _hsyslog-1.1.tar.gz: http://cryp.to/hsyslog/hsyslog-1.1.tar.gz
 
 .. _Reference Documentation: docs/index.html
