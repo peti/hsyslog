@@ -19,6 +19,17 @@ import Control.Exception ( bracket_ )
 import Foreign.C
 
 #include <syslog.h>
+#ifndef LOG_AUTHPRIV
+#define LOG_AUTHPRIV LOG_AUTH
+#endif
+
+#ifndef LOG_FTP
+#define LOG_FTP LOG_DAEMON
+#endif
+
+#ifndef LOG_PERROR
+#define LOG_PERROR 0
+#endif
 
 -- * Marshaled Data Types
 
@@ -69,8 +80,8 @@ data Facility
   | NEWS        -- ^ network news subsystem
   | UUCP        -- ^ UUCP subsystem
   | CRON        -- ^ clock daemon
-  | AUTHPRIV    -- ^ security\/authorization messages (private)
-  | FTP         -- ^ ftp daemon
+  | AUTHPRIV    -- ^ security\/authorization messages (effectively equals 'AUTH' on some systems)
+  | FTP         -- ^ ftp daemon (effectively equals 'DAEMON' on some systems)
   | LOCAL0      -- ^ reserved for local use
   | LOCAL1      -- ^ reserved for local use
   | LOCAL2      -- ^ reserved for local use
@@ -133,7 +144,7 @@ data Option
   | ODELAY    -- ^ delay open until first @syslog()@ (default)
   | NDELAY    -- ^ don't delay open
   | NOWAIT    -- ^ don't wait for console forks: DEPRECATED
-  | PERROR    -- ^ log to 'stderr' as well
+  | PERROR    -- ^ log to 'stderr' as well (might be a no-op on some systems)
   deriving (Eq, Bounded, Show)
 
 instance Enum Option where
