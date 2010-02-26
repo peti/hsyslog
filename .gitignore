@@ -1,14 +1,3 @@
-/.installed-pkg-config
-/.setup-config
-/GNUmakefile
-/Setup
-/Setup.hi
-/Setup.lhs
-/Setup.o
-/System/Posix/Syslog.hs
-/_darcs
+# ignore cabal build files
+
 /dist
-/docs
-/hsyslog-*.tar.gz
-/index.html
-/syslog-*.tar.gz
