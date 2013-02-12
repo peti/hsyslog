@@ -14,7 +14,6 @@
 
 module System.Posix.Syslog where
 
-import System.IO
 import Control.Exception ( bracket_ )
 import Foreign.C
 
