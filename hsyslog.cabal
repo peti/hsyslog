@@ -13,7 +13,7 @@ Description:            This library provides FFI bindings to syslog(3) from POS
 			further details.
 Cabal-Version:          >= 1.6
 Build-Type:             Simple
-Tested-With:            GHC == 6.12
+Tested-With:            GHC >= 6.10.4 && <= 7.6.2
 
 Source-Repository head
   Type:                 git
