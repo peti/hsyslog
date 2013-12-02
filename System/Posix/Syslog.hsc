@@ -1,5 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+#if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE DeriveGeneric #-}
+#endif
 {- |
    Module      :  System.Posix.Syslog
    Copyright   :  (c) 2008 Peter Simons
@@ -17,7 +19,9 @@ module System.Posix.Syslog where
 
 import Control.Exception ( bracket_ )
 import Foreign.C
+#if __GLASGOW_HASKELL__ >= 706
 import GHC.Generics
+#endif
 
 #include <syslog.h>
 #ifndef LOG_AUTHPRIV
@@ -45,7 +49,11 @@ data Priority
   | Notice      -- ^ normal but significant condition
   | Info        -- ^ informational
   | Debug       -- ^ debug-level messages
-  deriving (Eq, Bounded, Show, Generic)
+  deriving ( Eq, Bounded, Show
+#if __GLASGOW_HASKELL__ >= 706
+           , Generic
+#endif
+           )
 
 instance Enum Priority where
   toEnum #{const LOG_EMERG}   = Emergency
