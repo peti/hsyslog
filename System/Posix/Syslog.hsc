@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE DeriveGeneric #-}
 {- |
    Module      :  System.Posix.Syslog
    Copyright   :  (c) 2008 Peter Simons
@@ -16,6 +17,7 @@ module System.Posix.Syslog where
 
 import Control.Exception ( bracket_ )
 import Foreign.C
+import GHC.Generics
 
 #include <syslog.h>
 #ifndef LOG_AUTHPRIV
@@ -43,7 +45,7 @@ data Priority
   | Notice      -- ^ normal but significant condition
   | Info        -- ^ informational
   | Debug       -- ^ debug-level messages
-  deriving (Eq, Bounded, Show)
+  deriving (Eq, Bounded, Show, Generic)
 
 instance Enum Priority where
   toEnum #{const LOG_EMERG}   = Emergency
