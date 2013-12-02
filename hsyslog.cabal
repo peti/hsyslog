@@ -1,5 +1,5 @@
 Name:                   hsyslog
-Version:                1.5
+Version:                1.6
 Copyright:              Peter Simons
 License:                BSD3
 License-File:           LICENSE
@@ -8,13 +8,13 @@ Maintainer:             Peter Simons <simons@cryp.to>
 Homepage:               http://github.com/peti/hsyslog
 Bug-Reports:            http://github.com/peti/hsyslog/issues
 Category:               Foreign
-Synopsis:               FFI interface to syslog(3) from POSIX.1-2001.
+Synopsis:               FFI interface to syslog(3) from POSIX.1-2001
 Description:            This library provides FFI bindings to syslog(3) from POSIX.1-2001.
                         See <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html> for
                         further details.
 Cabal-Version:          >= 1.6
 Build-Type:             Simple
-Tested-With:            GHC >= 6.10.4 && <= 7.6.2
+Tested-With:            GHC >= 6.10.4 && <= 7.6.3
 
 Source-Repository head
   Type:                 git
