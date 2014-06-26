@@ -49,7 +49,7 @@ data Priority
   | Notice      -- ^ normal but significant condition
   | Info        -- ^ informational
   | Debug       -- ^ debug-level messages
-  deriving ( Eq, Bounded, Show
+  deriving ( Eq, Bounded, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
            , Generic
 #endif
@@ -99,7 +99,7 @@ data Facility
   | LOCAL5      -- ^ reserved for local use
   | LOCAL6      -- ^ reserved for local use
   | LOCAL7      -- ^ reserved for local use
-  deriving (Eq, Bounded, Show)
+  deriving (Eq, Bounded, Show, Read)
 
 instance Enum Facility where
   toEnum #{const LOG_KERN}      = KERN
