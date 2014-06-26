@@ -181,16 +181,17 @@ instance Enum Option where
 --
 -- Example:
 --
--- > main = withSyslog "my-ident" [PID, PERROR] USER $ do
+-- > main = withSyslog "my-ident" [PID, PERROR] USER Debug $ do
 -- >          putStrLn "huhu"
 -- >          syslog Debug "huhu"
 
-withSyslog :: String -> [Option] -> Facility -> IO a -> IO a
-withSyslog ident opts facil f = do
-  let opt = toEnum . sum . map fromEnum $ opts
-  let fac = toEnum . fromEnum           $ facil
-  withCString ident $ \p ->
-    bracket_ (_openlog p opt fac) (_closelog) f
+withSyslog :: String -> [Option] -> Facility -> Priority -> IO a -> IO a
+withSyslog ident opts facil prio f = withCString ident $ \p ->
+    bracket_ (_openlog p opt fac >> _setlogmask pri) (_closelog) f
+  where
+    fac = toEnum . fromEnum           $ facil
+    pri = toEnum . fromEnum           $ prio
+    opt = toEnum . sum . map fromEnum $ opts
 
 -- |Log a message with the given priority.
 
@@ -201,10 +202,10 @@ syslog l msg =
 
 -- * Helpers
 
--- | @useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER@
+-- | @useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER Debug@
 
 useSyslog :: String -> IO a -> IO a
-useSyslog ident = withSyslog ident [PID, PERROR] USER
+useSyslog ident = withSyslog ident [PID, PERROR] USER Debug
 
 -- |Escape any occurances of \'@%@\' in a string, so that it
 -- is safe to pass it to '_syslog'. The 'syslog' wrapper
