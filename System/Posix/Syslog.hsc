@@ -174,10 +174,10 @@ instance Enum Option where
 
 -- * Haskell API to syslog
 
--- |Bracket an 'IO' computation between calls to '_openlog'
--- and '_closelog'. Since these settings are for the
--- /process/, multiple calls to this function will,
--- unfortunately, overwrite each other.
+-- |Bracket an 'IO' computation between calls to '_openlog',
+-- '_setlogmask', and '_closelog'. Since these settings are for the
+-- /process/, multiple calls to this function will, unfortunately,
+-- overwrite each other.
 --
 -- Example:
 --
@@ -218,14 +218,32 @@ safeMsg ( x :xs) = x : safeMsg xs
 
 -- * Low-level C functions
 
-foreign import ccall unsafe "closelog" _closelog ::
-  IO ()
+-- |Open a connection to the system logger for a program. The string
+-- identifier passed as the first argument is prepended to every
+-- message, and is typically set to the program name. The behavior is
+-- unspecified by POSIX.1-2008 if that identifier is 'nullPtr'.
 
-foreign import ccall unsafe "openlog" _openlog ::
-  CString -> CInt -> CInt -> IO ()
+foreign import ccall unsafe "openlog" _openlog :: CString -> CInt -> CInt -> IO ()
 
-foreign import ccall unsafe "setlogmask" _setlogmask ::
-  CInt -> IO CInt
+-- |Close the descriptor being used to write to the system logger.
 
-foreign import ccall unsafe "syslog" _syslog ::
-  CInt -> CString -> IO ()
+foreign import ccall unsafe "closelog" _closelog :: IO ()
+
+-- |A process has a log priority mask that determines which calls to
+-- 'syslog' may be logged. All other calls will be ignored. Logging is
+-- enabled for the priorities that have the corresponding bit set in
+-- mask. The initial mask is such that logging is enabled for all
+-- priorities. This function sets this logmask for the calling process,
+-- and returns the previous mask. If the mask argument is 0, the current
+-- logmask is not modified.
+
+foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
+
+-- |Generate a log message, which will be distributed by @syslogd(8)@.
+-- The priority argument is formed by ORing the facility and the level
+-- values (explained below). The remaining arguments are a format, as in
+-- printf(3) and any arguments required by the format, except that the
+-- two character sequence %m will be replaced by the error message
+-- string strerror(errno). A trailing newline may be added if needed.
+
+foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
