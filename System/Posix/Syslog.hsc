@@ -4,15 +4,12 @@
 #endif
 {- |
    Module      :  System.Posix.Syslog
-   Copyright   :  (c) 2008 Peter Simons
-   License     :  BSD3
-
    Maintainer  :  simons@cryp.to
    Stability   :  provisional
    Portability :  Posix
 
-   FFI bindings to Unix's @syslog(3)@. Process this file
-   with @hsc2hs@ to obtain a Haskell module.
+   FFI bindings to syslog(3) from
+   <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html POSIX.1-2001>.
 -}
 
 module System.Posix.Syslog where
