@@ -179,14 +179,9 @@ instance Enum Option where
 --
 -- Example:
 --
--- > main = withSyslog "my-ident" [PID, PERROR] USER Debug $ do
+-- > main = withSyslog "my-ident" [PID, PERROR] USER (logUpTo Debug) $ do
 -- >          putStrLn "huhu"
 -- >          syslog Debug "huhu"
---
--- /TODO:/ The priority argument given here is a bitmask, so it really
---         needs to be a list of priorities. Alternatively, it can be a
---         single priority that's interpreted as an "up-to" kind of
---         filter.
 
 withSyslog :: String -> [Option] -> Facility -> [Priority] -> IO a -> IO a
 withSyslog ident opts facil prio f = withCString ident $ \p ->
