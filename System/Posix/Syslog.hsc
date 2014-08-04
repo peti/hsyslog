@@ -15,6 +15,7 @@
 module System.Posix.Syslog where
 
 import Control.Exception ( bracket_ )
+import Data.Bits
 import Foreign.C
 #if __GLASGOW_HASKELL__ >= 706
 import GHC.Generics
@@ -187,12 +188,14 @@ instance Enum Option where
 --         single priority that's interpreted as an "up-to" kind of
 --         filter.
 
-withSyslog :: String -> [Option] -> Facility -> Priority -> IO a -> IO a
+withSyslog :: String -> [Option] -> Facility -> [Priority] -> IO a -> IO a
 withSyslog ident opts facil prio f = withCString ident $ \p ->
     bracket_ (_openlog p opt fac >> _setlogmask pri) (_closelog) f
   where
     fac = toEnum . fromEnum           $ facil
-    pri = toEnum . fromEnum           $ prio
+    pri = toEnum . foldl1 (.|.) . map fromEnum $ if null prio
+                                                 then [minBound .. maxBound]
+                                                 else prio
     opt = toEnum . sum . map fromEnum $ opts
 
 -- |Log a message with the given priority.
@@ -204,10 +207,14 @@ syslog l msg =
 
 -- * Helpers
 
--- | @useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER Debug@
+-- | @useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER (logUpTo Debug)@
 
 useSyslog :: String -> IO a -> IO a
-useSyslog ident = withSyslog ident [PID, PERROR] USER Debug
+useSyslog ident = withSyslog ident [PID, PERROR] USER (logUpTo Debug)
+
+-- |Returns the list of priorities up to and including the argument.
+logUpTo :: Priority -> [Priority]
+logUpTo p = [minBound .. p]
 
 -- |Escape any occurances of \'@%@\' in a string, so that it
 -- is safe to pass it to '_syslog'. The 'syslog' wrapper
