@@ -188,9 +188,9 @@ withSyslog ident opts facil prio f = withCString ident $ \p ->
     bracket_ (_openlog p opt fac >> _setlogmask pri) (_closelog) f
   where
     fac = toEnum . fromEnum           $ facil
-    pri = toEnum . foldl1 (.|.) . map fromEnum $ if null prio
-                                                 then [minBound .. maxBound]
-                                                 else prio
+    pri = toEnum . foldl1 (.|.) . map (shift 1 . fromEnum) $ if null prio
+                                                             then [minBound .. maxBound]
+                                                             else prio
     opt = toEnum . sum . map fromEnum $ opts
 
 -- |Log a message with the given priority.
