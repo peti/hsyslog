@@ -12,7 +12,7 @@ Synopsis:               FFI interface to syslog(3) from POSIX.1-2001
 Description:            This library provides FFI bindings to syslog(3) from POSIX.1-2001.
                         See <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html> for
                         further details.
-Cabal-Version:          >= 1.6
+Cabal-Version:          >= 1.8
 Build-Type:             Simple
 Tested-With:            GHC >= 6.10.4 && <= 7.8.3
 
@@ -24,4 +24,10 @@ Library
   Build-Depends:        base >= 3 && < 5
   Extensions:           ForeignFunctionInterface
   Exposed-Modules:      System.Posix.Syslog
+  Ghc-Options:          -Wall
+
+Test-Suite self-test
+  type:                 exitcode-stdio-1.0
+  main-is:              doctest.hs
+  Build-Depends:        base, doctest
   Ghc-Options:          -Wall
