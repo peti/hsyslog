@@ -37,6 +37,12 @@ import GHC.Generics
 -- * Marshaled Data Types
 
 -- |Log messages are prioritized.
+--
+-- Note that the 'Enum' instance for this class is incomplete. We abuse
+-- 'toEnum' and 'fromEnum' to map these constructors to their
+-- corresponding bit-mask value in C, but not all uses cases provided by
+-- of enumerating that class are fully supported
+-- (<https://github.com/peti/hsyslog/issues/5 issue #5>).
 
 data Priority
   = Emergency   -- ^ system is unusable
@@ -173,15 +179,14 @@ instance Enum Option where
 -- * Haskell API to syslog
 
 -- |Bracket an 'IO' computation between calls to '_openlog',
--- '_setlogmask', and '_closelog'. Since these settings are for the
--- /process/, multiple calls to this function will, unfortunately,
--- overwrite each other.
---
--- Example:
+-- '_setlogmask', and '_closelog'. The function can be used as follows:
 --
 -- > main = withSyslog "my-ident" [PID, PERROR] USER (logUpTo Debug) $ do
 -- >          putStrLn "huhu"
 -- >          syslog Debug "huhu"
+--
+-- Note that these are /process-wide/ settings, so multiple calls to
+-- this function will interfere with each other in unpredictable ways.
 
 withSyslog :: String -> [Option] -> Facility -> [Priority] -> IO a -> IO a
 withSyslog ident opts facil prio f = withCString ident $ \p ->
@@ -194,11 +199,40 @@ withSyslog ident opts facil prio f = withCString ident $ \p ->
     opt = toEnum . sum . map fromEnum $ opts
 
 -- |Log a message with the given priority.
+--
+-- Note that the API of this function is somewhat unsatisfactory and is
+-- likely to change in the future:
+--
+-- 1. The function should accept a @['Facility']@ argument so that
+--    messages can be logged to certain facilities without depending on
+--    the process-wide global default value set by 'openlog'
+--    (<https://github.com/peti/hsyslog/issues/6 issue #6>).
+--
+-- 2. The 'Priority' argument should be @['Priority']@.
+--
+-- 3. Accepting a 'ByteString' instead of 'String' would be preferrable
+--    because we can log those more efficiently, i.e. without
+--    marshaling. On top of that, we can provide a wrapper for this
+--    function that accepts anything that can be marshaled into a
+--    'ByteString' (<https://github.com/peti/hsyslog/issues/7 issue #7>).
 
 syslog :: Priority -> String -> IO ()
 syslog l msg =
   withCString (safeMsg msg)
     (\p -> _syslog (toEnum (fromEnum l)) p)
+
+-- |Returns the list of priorities up to and including the argument.
+-- Note that the syslog priority 'Debug' is considered the highest one
+-- in this context, which may counter-intuitive for some.
+--
+-- >>> logUpTo(Debug)
+-- [Emergency,Alert,Critical,Error,Warning,Notice,Info,Debug]
+--
+-- >>> logUpTo(Emergency)
+-- [Emergency]
+
+logUpTo :: Priority -> [Priority]
+logUpTo p = [minBound .. p]
 
 -- * Helpers
 
@@ -207,13 +241,14 @@ syslog l msg =
 useSyslog :: String -> IO a -> IO a
 useSyslog ident = withSyslog ident [PID, PERROR] USER (logUpTo Debug)
 
--- |Returns the list of priorities up to and including the argument.
-logUpTo :: Priority -> [Priority]
-logUpTo p = [minBound .. p]
-
--- |Escape any occurances of \'@%@\' in a string, so that it
--- is safe to pass it to '_syslog'. The 'syslog' wrapper
--- does this automatically.
+-- |Escape any occurances of \'@%@\' in a string, so that it is safe to
+-- pass it to '_syslog'. The 'syslog' wrapper does this automatically.
+--
+-- Unfortunately, the application of this function to every single
+-- syslog message is a performence nightmare. Instead, we should call
+-- syslog the existence of this function is a kludge, in a way that
+-- doesn't require any escaping
+-- (<https://github.com/peti/hsyslog/issues/8 issue #8>).
 
 safeMsg :: String -> String
 safeMsg []       = []
