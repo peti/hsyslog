@@ -236,11 +236,6 @@ logUpTo p = [minBound .. p]
 
 -- * Helpers
 
--- |@useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER (logUpTo Debug)@
-
-useSyslog :: String -> IO a -> IO a
-useSyslog ident = withSyslog ident [PID, PERROR] USER (logUpTo Debug)
-
 -- |Escape any occurances of \'@%@\' in a string, so that it is safe to
 -- pass it to '_syslog'. The 'syslog' wrapper does this automatically.
 --
