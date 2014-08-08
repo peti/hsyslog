@@ -202,7 +202,7 @@ syslog l msg =
 
 -- * Helpers
 
--- | @useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER (logUpTo Debug)@
+-- |@useSyslog ident@ @=@ @withSyslog ident [PID, PERROR] USER (logUpTo Debug)@
 
 useSyslog :: String -> IO a -> IO a
 useSyslog ident = withSyslog ident [PID, PERROR] USER (logUpTo Debug)
