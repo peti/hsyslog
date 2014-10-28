@@ -223,7 +223,7 @@ syslog l msg =
 
 -- |Returns the list of priorities up to and including the argument.
 -- Note that the syslog priority 'Debug' is considered the highest one
--- in this context, which may counter-intuitive for some.
+-- in this context, which may be counter-intuitive for some.
 --
 -- >>> logUpTo(Debug)
 -- [Emergency,Alert,Critical,Error,Warning,Notice,Info,Debug]
