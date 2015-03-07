@@ -36,13 +36,7 @@ import GHC.Generics
 
 -- * Marshaled Data Types
 
--- |Log messages are prioritized.
---
--- Note that the 'Enum' instance for this class is incomplete. We abuse
--- 'toEnum' and 'fromEnum' to map these constructors to their
--- corresponding bit-mask value in C, but not all uses cases provided by
--- of enumerating that class are fully supported
--- (<https://github.com/peti/hsyslog/issues/5 issue #5>).
+-- |Log messages have a priority attached.
 
 data Priority
   = Emergency   -- ^ system is unusable
@@ -53,31 +47,32 @@ data Priority
   | Notice      -- ^ normal but significant condition
   | Info        -- ^ informational
   | Debug       -- ^ debug-level messages
-  deriving ( Eq, Bounded, Show, Read
+  deriving ( Eq, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
            , Generic
 #endif
            )
 
-instance Enum Priority where
-  toEnum #{const LOG_EMERG}   = Emergency
-  toEnum #{const LOG_ALERT}   = Alert
-  toEnum #{const LOG_CRIT}    = Critical
-  toEnum #{const LOG_ERR}     = Error
-  toEnum #{const LOG_WARNING} = Warning
-  toEnum #{const LOG_NOTICE}  = Notice
-  toEnum #{const LOG_INFO}    = Info
-  toEnum #{const LOG_DEBUG}   = Debug
-  toEnum i = error (showString "Syslog.Priority cannot be mapped from value " (show i))
+toPriority :: CInt -> Priority
+toPriority #{const LOG_EMERG}   = Emergency
+toPriority #{const LOG_ALERT}   = Alert
+toPriority #{const LOG_CRIT}    = Critical
+toPriority #{const LOG_ERR}     = Error
+toPriority #{const LOG_WARNING} = Warning
+toPriority #{const LOG_NOTICE}  = Notice
+toPriority #{const LOG_INFO}    = Info
+toPriority #{const LOG_DEBUG}   = Debug
+toPriority i = error (shows i " is not a valid syslog priority value")
 
-  fromEnum Emergency = #{const LOG_EMERG}
-  fromEnum Alert     = #{const LOG_ALERT}
-  fromEnum Critical  = #{const LOG_CRIT}
-  fromEnum Error     = #{const LOG_ERR}
-  fromEnum Warning   = #{const LOG_WARNING}
-  fromEnum Notice    = #{const LOG_NOTICE}
-  fromEnum Info      = #{const LOG_INFO}
-  fromEnum Debug     = #{const LOG_DEBUG}
+fromPriority :: Priority -> CInt
+fromPriority Emergency = #{const LOG_EMERG}
+fromPriority Alert     = #{const LOG_ALERT}
+fromPriority Critical  = #{const LOG_CRIT}
+fromPriority Error     = #{const LOG_ERR}
+fromPriority Warning   = #{const LOG_WARNING}
+fromPriority Notice    = #{const LOG_NOTICE}
+fromPriority Info      = #{const LOG_INFO}
+fromPriority Debug     = #{const LOG_DEBUG}
 
 -- |Syslog distinguishes various system facilities. Most
 -- applications should log in 'USER'.
@@ -103,53 +98,54 @@ data Facility
   | LOCAL5      -- ^ reserved for local use
   | LOCAL6      -- ^ reserved for local use
   | LOCAL7      -- ^ reserved for local use
-  deriving (Eq, Bounded, Show, Read)
+  deriving (Eq, Show, Read)
 
-instance Enum Facility where
-  toEnum #{const LOG_KERN}      = KERN
-  toEnum #{const LOG_USER}      = USER
-  toEnum #{const LOG_MAIL}      = MAIL
-  toEnum #{const LOG_DAEMON}    = DAEMON
-  toEnum #{const LOG_AUTH}      = AUTH
-  toEnum #{const LOG_SYSLOG}    = SYSLOG
-  toEnum #{const LOG_LPR}       = LPR
-  toEnum #{const LOG_NEWS}      = NEWS
-  toEnum #{const LOG_UUCP}      = UUCP
-  toEnum #{const LOG_CRON}      = CRON
-  toEnum #{const LOG_AUTHPRIV}  = AUTHPRIV
-  toEnum #{const LOG_FTP}       = FTP
-  toEnum #{const LOG_LOCAL0}    = LOCAL0
-  toEnum #{const LOG_LOCAL1}    = LOCAL1
-  toEnum #{const LOG_LOCAL2}    = LOCAL2
-  toEnum #{const LOG_LOCAL3}    = LOCAL3
-  toEnum #{const LOG_LOCAL4}    = LOCAL4
-  toEnum #{const LOG_LOCAL5}    = LOCAL5
-  toEnum #{const LOG_LOCAL6}    = LOCAL6
-  toEnum #{const LOG_LOCAL7}    = LOCAL7
-  toEnum i = error ("Syslog.Facility cannot be mapped to value " ++ show i)
+toFacility :: CInt -> Facility
+toFacility #{const LOG_KERN}      = KERN
+toFacility #{const LOG_USER}      = USER
+toFacility #{const LOG_MAIL}      = MAIL
+toFacility #{const LOG_DAEMON}    = DAEMON
+toFacility #{const LOG_AUTH}      = AUTH
+toFacility #{const LOG_SYSLOG}    = SYSLOG
+toFacility #{const LOG_LPR}       = LPR
+toFacility #{const LOG_NEWS}      = NEWS
+toFacility #{const LOG_UUCP}      = UUCP
+toFacility #{const LOG_CRON}      = CRON
+toFacility #{const LOG_AUTHPRIV}  = AUTHPRIV
+toFacility #{const LOG_FTP}       = FTP
+toFacility #{const LOG_LOCAL0}    = LOCAL0
+toFacility #{const LOG_LOCAL1}    = LOCAL1
+toFacility #{const LOG_LOCAL2}    = LOCAL2
+toFacility #{const LOG_LOCAL3}    = LOCAL3
+toFacility #{const LOG_LOCAL4}    = LOCAL4
+toFacility #{const LOG_LOCAL5}    = LOCAL5
+toFacility #{const LOG_LOCAL6}    = LOCAL6
+toFacility #{const LOG_LOCAL7}    = LOCAL7
+toFacility i = error (shows i " is not a valid syslog facility value")
 
-  fromEnum KERN      = #{const LOG_KERN}
-  fromEnum USER      = #{const LOG_USER}
-  fromEnum MAIL      = #{const LOG_MAIL}
-  fromEnum DAEMON    = #{const LOG_DAEMON}
-  fromEnum AUTH      = #{const LOG_AUTH}
-  fromEnum SYSLOG    = #{const LOG_SYSLOG}
-  fromEnum LPR       = #{const LOG_LPR}
-  fromEnum NEWS      = #{const LOG_NEWS}
-  fromEnum UUCP      = #{const LOG_UUCP}
-  fromEnum CRON      = #{const LOG_CRON}
-  fromEnum AUTHPRIV  = #{const LOG_AUTHPRIV}
-  fromEnum FTP       = #{const LOG_FTP}
-  fromEnum LOCAL0    = #{const LOG_LOCAL0}
-  fromEnum LOCAL1    = #{const LOG_LOCAL1}
-  fromEnum LOCAL2    = #{const LOG_LOCAL2}
-  fromEnum LOCAL3    = #{const LOG_LOCAL3}
-  fromEnum LOCAL4    = #{const LOG_LOCAL4}
-  fromEnum LOCAL5    = #{const LOG_LOCAL5}
-  fromEnum LOCAL6    = #{const LOG_LOCAL6}
-  fromEnum LOCAL7    = #{const LOG_LOCAL7}
+fromFacility :: Facility -> CInt
+fromFacility KERN      = #{const LOG_KERN}
+fromFacility USER      = #{const LOG_USER}
+fromFacility MAIL      = #{const LOG_MAIL}
+fromFacility DAEMON    = #{const LOG_DAEMON}
+fromFacility AUTH      = #{const LOG_AUTH}
+fromFacility SYSLOG    = #{const LOG_SYSLOG}
+fromFacility LPR       = #{const LOG_LPR}
+fromFacility NEWS      = #{const LOG_NEWS}
+fromFacility UUCP      = #{const LOG_UUCP}
+fromFacility CRON      = #{const LOG_CRON}
+fromFacility AUTHPRIV  = #{const LOG_AUTHPRIV}
+fromFacility FTP       = #{const LOG_FTP}
+fromFacility LOCAL0    = #{const LOG_LOCAL0}
+fromFacility LOCAL1    = #{const LOG_LOCAL1}
+fromFacility LOCAL2    = #{const LOG_LOCAL2}
+fromFacility LOCAL3    = #{const LOG_LOCAL3}
+fromFacility LOCAL4    = #{const LOG_LOCAL4}
+fromFacility LOCAL5    = #{const LOG_LOCAL5}
+fromFacility LOCAL6    = #{const LOG_LOCAL6}
+fromFacility LOCAL7    = #{const LOG_LOCAL7}
 
--- |Options for the syslog service. Set with 'withSyslog'.
+-- |'withSyslog' options for the syslog service.
 
 data Option
   = PID       -- ^ log the pid with each message
@@ -158,23 +154,24 @@ data Option
   | NDELAY    -- ^ don't delay open
   | NOWAIT    -- ^ don't wait for console forks: DEPRECATED
   | PERROR    -- ^ log to 'stderr' as well (might be a no-op on some systems)
-  deriving (Eq, Bounded, Show)
+  deriving (Eq, Show)
 
-instance Enum Option where
-  toEnum #{const LOG_PID}     = PID
-  toEnum #{const LOG_CONS}    = CONS
-  toEnum #{const LOG_ODELAY}  = ODELAY
-  toEnum #{const LOG_NDELAY}  = NDELAY
-  toEnum #{const LOG_NOWAIT}  = NOWAIT
-  toEnum #{const LOG_PERROR}  = PERROR
-  toEnum i = error ("Syslog.Option cannot be mapped to value " ++ show i)
+toOption :: CInt -> Option
+toOption #{const LOG_PID}     = PID
+toOption #{const LOG_CONS}    = CONS
+toOption #{const LOG_ODELAY}  = ODELAY
+toOption #{const LOG_NDELAY}  = NDELAY
+toOption #{const LOG_NOWAIT}  = NOWAIT
+toOption #{const LOG_PERROR}  = PERROR
+toOption i = error (shows i " is not a valid syslog option value")
 
-  fromEnum PID     = #{const LOG_PID}
-  fromEnum CONS    = #{const LOG_CONS}
-  fromEnum ODELAY  = #{const LOG_ODELAY}
-  fromEnum NDELAY  = #{const LOG_NDELAY}
-  fromEnum NOWAIT  = #{const LOG_NOWAIT}
-  fromEnum PERROR  = #{const LOG_PERROR}
+fromOption :: Option -> CInt
+fromOption PID     = #{const LOG_PID}
+fromOption CONS    = #{const LOG_CONS}
+fromOption ODELAY  = #{const LOG_ODELAY}
+fromOption NDELAY  = #{const LOG_NDELAY}
+fromOption NOWAIT  = #{const LOG_NOWAIT}
+fromOption PERROR  = #{const LOG_PERROR}
 
 -- * Haskell API to syslog
 
@@ -192,11 +189,9 @@ withSyslog :: String -> [Option] -> Facility -> [Priority] -> IO a -> IO a
 withSyslog ident opts facil prio f = withCString ident $ \p ->
     bracket_ (_openlog p opt fac >> _setlogmask pri) (_closelog) f
   where
-    fac = toEnum . fromEnum           $ facil
-    pri = toEnum . foldl1 (.|.) . map (shift 1 . fromEnum) $ if null prio
-                                                             then [minBound .. maxBound]
-                                                             else prio
-    opt = toEnum . sum . map fromEnum $ opts
+    fac = undefined
+    pri = undefined
+    opt = undefined
 
 -- |Log a message with the given priority.
 --
@@ -217,22 +212,7 @@ withSyslog ident opts facil prio f = withCString ident $ \p ->
 --    'ByteString' (<https://github.com/peti/hsyslog/issues/7 issue #7>).
 
 syslog :: Priority -> String -> IO ()
-syslog l msg =
-  withCString (safeMsg msg)
-    (\p -> _syslog (toEnum (fromEnum l)) p)
-
--- |Returns the list of priorities up to and including the argument.
--- Note that the syslog priority 'Debug' is considered the highest one
--- in this context, which may be counter-intuitive for some.
---
--- >>> logUpTo(Debug)
--- [Emergency,Alert,Critical,Error,Warning,Notice,Info,Debug]
---
--- >>> logUpTo(Emergency)
--- [Emergency]
-
-logUpTo :: Priority -> [Priority]
-logUpTo p = [minBound .. p]
+syslog pri msg = withCString (safeMsg msg) (_syslog (fromPriority pri))
 
 -- * Helpers
 
