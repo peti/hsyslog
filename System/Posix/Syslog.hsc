@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE CApiFFI, ForeignFunctionInterface #-}
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE DeriveGeneric #-}
 #endif
@@ -16,6 +16,7 @@ module System.Posix.Syslog where
 
 import Control.Exception ( bracket_ )
 import Data.Bits
+import Data.List (foldl')
 import Foreign.C
 #if __GLASGOW_HASKELL__ >= 706
 import GHC.Generics
@@ -173,25 +174,38 @@ fromOption NDELAY  = #{const LOG_NDELAY}
 fromOption NOWAIT  = #{const LOG_NOWAIT}
 fromOption PERROR  = #{const LOG_PERROR}
 
+-- |Syslog provides two possibilities for `_setlogmask`: either a manual
+-- whitelist of allowed priorities or an inclusive whitelist denoted by the
+-- lowest allowed priority (opposite of what the naming seemingly dictates)
+
+data PriorityMask
+  = Mask [Priority]
+  | UpTo Priority
+  deriving (Eq, Show)
+
+fromPriorityMask :: PriorityMask -> CInt
+fromPriorityMask (Mask pris) = bitsOrWith (_LOG_MASK . fromPriority) pris
+fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
+
 -- * Haskell API to syslog
 
 -- |Bracket an 'IO' computation between calls to '_openlog',
 -- '_setlogmask', and '_closelog'. The function can be used as follows:
 --
--- > main = withSyslog "my-ident" [PID, PERROR] USER (logUpTo Debug) $ do
+-- > main = withSyslog "my-ident" [PID, PERROR] USER (UpTo Debug) $ do
 -- >          putStrLn "huhu"
 -- >          syslog Debug "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: String -> [Option] -> Facility -> [Priority] -> IO a -> IO a
-withSyslog ident opts facil prio f = withCString ident $ \p ->
-    bracket_ (_openlog p opt fac >> _setlogmask pri) (_closelog) f
+withSyslog :: String -> [Option] -> Facility -> PriorityMask -> IO a -> IO a
+withSyslog ident opts facil mask f = withCString ident $ \p ->
+    bracket_ (_openlog p optsInt facInt >> _setlogmask priInt) (_closelog) f
   where
-    fac = undefined
-    pri = undefined
-    opt = undefined
+    facInt = fromFacility facil
+    priInt = fromPriorityMask mask
+    optsInt = bitsOrWith fromOption opts
 
 -- |Log a message with the given priority.
 --
@@ -261,3 +275,13 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- string strerror(errno). A trailing newline may be added if needed.
 
 foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
+
+-- macros provided by syslog.h
+
+foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
+foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
+
+-- utility functions
+
+bitsOrWith :: (Bits b, Num b) => (a -> b) -> [a] -> b
+bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0

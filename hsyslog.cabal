@@ -22,5 +22,5 @@ Source-Repository head
 
 Library
   Build-Depends:        base >= 3 && < 5
-  Extensions:           ForeignFunctionInterface
+  Extensions:           CApiFFI, ForeignFunctionInterface
   Exposed-Modules:      System.Posix.Syslog
