@@ -12,7 +12,31 @@
    <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html POSIX.1-2001>.
 -}
 
-module System.Posix.Syslog where
+module System.Posix.Syslog
+  ( -- * syslog values
+    Priority (..)
+  , toPriority
+  , fromPriority
+  , Facility (..)
+  , toFacility
+  , fromFacility
+  , Option (..)
+  , toOption
+  , fromOption
+  , PriorityMask (..)
+  , fromPriorityMask
+    -- * syslog API
+  , withSyslog
+  , syslog
+  , safeMsg
+    -- * FFI imports
+  , _openlog
+  , _closelog
+  , _setlogmask
+  , _syslog
+  , _LOG_MASK
+  , _LOG_UPTO
+  ) where
 
 import Control.Exception ( bracket_ )
 import Data.Bits
@@ -276,12 +300,12 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 
 foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
 
--- macros provided by syslog.h
+-- |Macros provided by syslog.h for bit operations
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
 
--- utility functions
+-- internal functions
 
 bitsOrWith :: (Bits b, Num b) => (a -> b) -> [a] -> b
 bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
