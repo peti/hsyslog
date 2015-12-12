@@ -1,7 +1,9 @@
 {-# LANGUAGE CApiFFI, ForeignFunctionInterface #-}
+
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE DeriveGeneric #-}
 #endif
+
 {- |
    Module      :  System.Posix.Syslog
    Maintainer  :  simons@cryp.to
@@ -13,7 +15,7 @@
 -}
 
 module System.Posix.Syslog
-  ( -- * syslog values
+  ( -- * Marshaled Data Types
     Priority (..)
   , toPriority
   , fromPriority
@@ -25,27 +27,33 @@ module System.Posix.Syslog
   , fromOption
   , PriorityMask (..)
   , fromPriorityMask
-    -- * syslog API
+    -- * Haskell API to syslog
   , withSyslog
   , syslog
   , syslogTo
+    -- * Helpers
   , safeMsg
-    -- * FFI imports
+    -- * Low-level C functions
   , _openlog
   , _closelog
   , _setlogmask
   , _syslog
+    -- ** Low-level C macros
+    -- | See the
+    -- <http://www.gnu.org/software/libc/manual/html_node/Submitting-Syslog-Messages.html GNU libc documentation>
+    -- for their intended usage.
   , _LOG_MASK
   , _LOG_UPTO
   , _LOG_MAKEPRI
   ) where
 
-import Control.Exception ( bracket_ )
-import Data.Bits
+import Control.Exception (bracket_)
+import Data.Bits (Bits, (.|.))
 import Data.List (foldl')
-import Foreign.C
+import Foreign.C (CInt (..), CString (..))
+
 #if __GLASGOW_HASKELL__ >= 706
-import GHC.Generics
+import GHC.Generics (Generic)
 #endif
 
 #include <syslog.h>
@@ -60,8 +68,6 @@ import GHC.Generics
 #ifndef LOG_PERROR
 #define LOG_PERROR 0
 #endif
-
--- * Marshaled Data Types
 
 -- |Log messages have a priority attached.
 
@@ -200,20 +206,18 @@ fromOption NDELAY  = #{const LOG_NDELAY}
 fromOption NOWAIT  = #{const LOG_NOWAIT}
 fromOption PERROR  = #{const LOG_PERROR}
 
--- |Syslog provides two possibilities for `_setlogmask`: either a manual
--- whitelist of allowed priorities or an inclusive whitelist denoted by the
--- lowest allowed priority (opposite of what the naming seemingly dictates)
+-- |`withSyslog` options for the priority mask
 
 data PriorityMask
-  = Mask [Priority]
-  | UpTo Priority
+  = NoMask          -- ^ allow all messages thru
+  | Mask [Priority] -- ^ allow only messages with the priorities listed
+  | UpTo Priority   -- ^ allow only messages down to and including the specified priority
   deriving (Eq, Show)
 
 fromPriorityMask :: PriorityMask -> CInt
 fromPriorityMask (Mask pris) = bitsOrWith (_LOG_MASK . fromPriority) pris
 fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
-
--- * Haskell API to syslog
+fromPriorityMask NoMask = 0
 
 -- |Bracket an 'IO' computation between calls to '_openlog',
 -- '_setlogmask', and '_closelog'. The function can be used as follows:
@@ -247,11 +251,12 @@ withSyslog ident opts facs mask f = withCString ident $ \p ->
 syslog :: [Priority] -> String -> IO ()
 syslog = syslogTo []
 
+-- |Like 'syslog', but to the specified facilities instead of the default
+-- assigned during 'withSyslog'
+
 syslogTo :: [Facility] -> [Priority] -> String -> IO ()
 syslogTo facs pris msg =
     withCString (safeMsg msg) (_syslog (makePri facs pris))
-
--- * Helpers
 
 -- |Escape any occurances of \'@%@\' in a string, so that it is safe to
 -- pass it to '_syslog'. The 'syslog' wrapper does this automatically.
@@ -266,8 +271,6 @@ safeMsg :: String -> String
 safeMsg []       = []
 safeMsg ('%':xs) = '%' : '%' : safeMsg xs
 safeMsg ( x :xs) = x : safeMsg xs
-
--- * Low-level C functions
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -298,8 +301,6 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- string strerror(errno). A trailing newline may be added if needed.
 
 foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
-
--- |Macros provided by syslog.h for bit operations
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
