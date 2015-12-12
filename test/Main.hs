@@ -13,9 +13,9 @@ import System.Posix.Syslog
 main :: IO ()
 main =
     withSyslog "hsyslog" options facility priority $ do
-      syslog Debug "hsyslog is working :)"
-      syslog Error "hsyslog is not working :("
+      syslogTo [MAIL, NEWS] [Debug, Alert] "hsyslog is working :)"
+      syslog [Error] "hsyslog is not working :("
   where
     options = [PERROR, NDELAY]
-    facility = USER
+    facility = [USER]
     priority = (Mask [Debug, Alert])

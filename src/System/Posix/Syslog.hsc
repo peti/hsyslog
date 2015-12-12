@@ -28,6 +28,7 @@ module System.Posix.Syslog
     -- * syslog API
   , withSyslog
   , syslog
+  , syslogTo
   , safeMsg
     -- * FFI imports
   , _openlog
@@ -36,6 +37,7 @@ module System.Posix.Syslog
   , _syslog
   , _LOG_MASK
   , _LOG_UPTO
+  , _LOG_MAKEPRI
   ) where
 
 import Control.Exception ( bracket_ )
@@ -216,41 +218,38 @@ fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
 -- |Bracket an 'IO' computation between calls to '_openlog',
 -- '_setlogmask', and '_closelog'. The function can be used as follows:
 --
--- > main = withSyslog "my-ident" [PID, PERROR] USER (UpTo Debug) $ do
+-- > main = withSyslog "my-ident" [PID, PERROR] [USER] (UpTo Debug) $ do
 -- >          putStrLn "huhu"
--- >          syslog Debug "huhu"
+-- >          syslog [Debug] "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: String -> [Option] -> Facility -> PriorityMask -> IO a -> IO a
-withSyslog ident opts facil mask f = withCString ident $ \p ->
-    bracket_ (_openlog p optsInt facInt >> _setlogmask priInt) (_closelog) f
+withSyslog :: String -> [Option] -> [Facility] -> PriorityMask -> IO a -> IO a
+withSyslog ident opts facs mask f = withCString ident $ \p ->
+    bracket_ (_openlog p optsInt facsInt >> _setlogmask priInt) (_closelog) f
   where
-    facInt = fromFacility facil
+    facsInt = bitsOrWith fromFacility facs
     priInt = fromPriorityMask mask
     optsInt = bitsOrWith fromOption opts
 
--- |Log a message with the given priority.
+-- |Log a message with the given priorities.
 --
 -- Note that the API of this function is somewhat unsatisfactory and is
 -- likely to change in the future:
 --
--- 1. The function should accept a @['Facility']@ argument so that
---    messages can be logged to certain facilities without depending on
---    the process-wide global default value set by 'openlog'
---    (<https://github.com/peti/hsyslog/issues/6 issue #6>).
---
--- 2. The 'Priority' argument should be @['Priority']@.
---
--- 3. Accepting a 'ByteString' instead of 'String' would be preferrable
+-- 1. Accepting a 'ByteString' instead of 'String' would be preferrable
 --    because we can log those more efficiently, i.e. without
 --    marshaling. On top of that, we can provide a wrapper for this
 --    function that accepts anything that can be marshaled into a
 --    'ByteString' (<https://github.com/peti/hsyslog/issues/7 issue #7>).
 
-syslog :: Priority -> String -> IO ()
-syslog pri msg = withCString (safeMsg msg) (_syslog (fromPriority pri))
+syslog :: [Priority] -> String -> IO ()
+syslog = syslogTo []
+
+syslogTo :: [Facility] -> [Priority] -> String -> IO ()
+syslogTo facs pris msg =
+    withCString (safeMsg msg) (_syslog (makePri facs pris))
 
 -- * Helpers
 
@@ -304,8 +303,13 @@ foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
+foreign import capi "syslog.h LOG_MAKEPRI" _LOG_MAKEPRI :: CInt -> CInt -> CInt
 
 -- internal functions
 
 bitsOrWith :: (Bits b, Num b) => (a -> b) -> [a] -> b
 bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
+
+makePri :: [Facility] -> [Priority] -> CInt
+makePri facs pris =
+    _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
