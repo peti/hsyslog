@@ -1,4 +1,8 @@
-{-# LANGUAGE CApiFFI, ForeignFunctionInterface #-}
+{-# LANGUAGE
+    CApiFFI
+  , ForeignFunctionInterface
+  , OverloadedStrings
+  #-}
 
 #if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE DeriveGeneric #-}
@@ -31,8 +35,6 @@ module System.Posix.Syslog
   , withSyslog
   , syslog
   , syslogTo
-    -- * Helpers
-  , safeMsg
     -- * Low-level C functions
   , _openlog
   , _closelog
@@ -49,6 +51,7 @@ module System.Posix.Syslog
 
 import Control.Exception (bracket_)
 import Data.Bits (Bits, (.|.))
+import Data.ByteString (ByteString, useAsCString)
 import Data.List (foldl')
 import Foreign.C (CInt (..), CString (..))
 
@@ -229,8 +232,8 @@ fromPriorityMask NoMask = 0
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: String -> [Option] -> [Facility] -> PriorityMask -> IO a -> IO a
-withSyslog ident opts facs mask f = withCString ident $ \p ->
+withSyslog :: ByteString -> [Option] -> [Facility] -> PriorityMask -> IO a -> IO a
+withSyslog ident opts facs mask f = useAsCString ident $ \p ->
     bracket_ (_openlog p optsInt facsInt >> _setlogmask priInt) (_closelog) f
   where
     facsInt = bitsOrWith fromFacility facs
@@ -238,39 +241,16 @@ withSyslog ident opts facs mask f = withCString ident $ \p ->
     optsInt = bitsOrWith fromOption opts
 
 -- |Log a message with the given priorities.
---
--- Note that the API of this function is somewhat unsatisfactory and is
--- likely to change in the future:
---
--- 1. Accepting a 'ByteString' instead of 'String' would be preferrable
---    because we can log those more efficiently, i.e. without
---    marshaling. On top of that, we can provide a wrapper for this
---    function that accepts anything that can be marshaled into a
---    'ByteString' (<https://github.com/peti/hsyslog/issues/7 issue #7>).
 
-syslog :: [Priority] -> String -> IO ()
+syslog :: [Priority] -> ByteString -> IO ()
 syslog = syslogTo []
 
 -- |Like 'syslog', but to the specified facilities instead of the default
 -- assigned during 'withSyslog'
 
-syslogTo :: [Facility] -> [Priority] -> String -> IO ()
+syslogTo :: [Facility] -> [Priority] -> ByteString -> IO ()
 syslogTo facs pris msg =
-    withCString (safeMsg msg) (_syslog (makePri facs pris))
-
--- |Escape any occurances of \'@%@\' in a string, so that it is safe to
--- pass it to '_syslog'. The 'syslog' wrapper does this automatically.
---
--- Unfortunately, the application of this function to every single
--- syslog message is a performence nightmare. Instead, we should call
--- syslog the existence of this function is a kludge, in a way that
--- doesn't require any escaping
--- (<https://github.com/peti/hsyslog/issues/8 issue #8>).
-
-safeMsg :: String -> String
-safeMsg []       = []
-safeMsg ('%':xs) = '%' : '%' : safeMsg xs
-safeMsg ( x :xs) = x : safeMsg xs
+    useAsCString msg (_syslog_escaped (makePri facs pris))
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -314,3 +294,8 @@ bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
 makePri :: [Facility] -> [Priority] -> CInt
 makePri facs pris =
     _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
+
+foreign import ccall unsafe "syslog" __syslog_escaped :: CInt -> CString -> CString -> IO ()
+
+_syslog_escaped :: CInt -> CString -> IO ()
+_syslog_escaped int str = useAsCString "%s" $ \esc -> __syslog_escaped int esc str
