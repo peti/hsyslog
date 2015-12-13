@@ -249,8 +249,7 @@ syslog = syslogTo []
 -- assigned during 'withSyslog'
 
 syslogTo :: [Facility] -> [Priority] -> ByteString -> IO ()
-syslogTo facs pris msg =
-    useAsCString msg (_syslog_escaped (makePri facs pris))
+syslogTo facs pris msg = useAsCString msg (_syslog (makePri facs pris))
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -280,7 +279,8 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- two character sequence %m will be replaced by the error message
 -- string strerror(errno). A trailing newline may be added if needed.
 
-foreign import ccall unsafe "syslog" _syslog :: CInt -> CString -> IO ()
+_syslog :: CInt -> CString -> IO ()
+_syslog int str = useAsCString "%s" $ \esc -> _syslogUnescaped int esc str
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
@@ -295,7 +295,5 @@ makePri :: [Facility] -> [Priority] -> CInt
 makePri facs pris =
     _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
 
-foreign import ccall unsafe "syslog" __syslog_escaped :: CInt -> CString -> CString -> IO ()
-
-_syslog_escaped :: CInt -> CString -> IO ()
-_syslog_escaped int str = useAsCString "%s" $ \esc -> __syslog_escaped int esc str
+foreign import ccall unsafe "syslog" _syslogUnescaped
+  :: CInt -> CString -> CString -> IO ()
