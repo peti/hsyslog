@@ -35,8 +35,9 @@ module System.Posix.Syslog
   , SyslogConfig (..)
   , defaultConfig
   , withSyslog
-  , syslog
-  , syslogTo
+  , SyslogFn
+  , withSyslogTo
+  , SyslogToFn
     -- * Low-level C functions
   , _openlog
   , _closelog
@@ -239,17 +240,40 @@ defaultConfig :: SyslogConfig
 defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
 
 -- |Bracket an 'IO' computation between calls to '_openlog', '_setlogmask', and
--- '_closelog'. The function can be used as follows:
+-- '_closelog', and provide a logging function which can be used as follows:
 --
--- > main = withSyslog defaultConfig $ do
+-- > main = withSyslog defaultConfig $ \syslog -> do
 -- >          putStrLn "huhu"
 -- >          syslog [Debug] "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: SyslogConfig -> IO a -> IO a
-withSyslog config = bracket_ (openSyslog config) closeSyslog
+withSyslog :: SyslogConfig -> (SyslogFn -> IO a) -> IO a
+withSyslog config f =
+    bracket_
+      (openSyslog config)
+      closeSyslog
+      (useAsCString escape $ \e -> f (syslog e []))
+
+-- |The type of function provided by 'withSyslog'.
+
+type SyslogFn = [Priority] -> ByteString -> IO ()
+
+-- |Like 'withSyslog' but provides a function for logging to specific
+-- facilities per message rather than the default facilities in your
+-- 'SyslogConfig'.
+
+withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO a) -> IO a
+withSyslogTo config f =
+    bracket_
+      (openSyslog config)
+      closeSyslog
+      (useAsCString escape $ \e -> f (syslog e))
+
+-- |The type of function provided by 'withSyslogTo'.
+
+type SyslogToFn = [Facility] -> [Priority] -> ByteString -> IO ()
 
 openSyslog :: SyslogConfig -> IO ()
 openSyslog (SyslogConfig ident opts facs mask) = do
@@ -264,16 +288,12 @@ openSyslog (SyslogConfig ident opts facs mask) = do
 closeSyslog :: IO ()
 closeSyslog = _closelog
 
--- |Log a message with the given priorities.
+syslog :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
+syslog esc facs pris msg =
+    useAsCString msg (_syslogUnescaped (makePri facs pris) esc)
 
-syslog :: [Priority] -> ByteString -> IO ()
-syslog = syslogTo []
-
--- |Like 'syslog', but to the specified facilities instead of the defaults
--- assigned in your 'SyslogConfig'
-
-syslogTo :: [Facility] -> [Priority] -> ByteString -> IO ()
-syslogTo facs pris msg = useAsCString msg (_syslog (makePri facs pris))
+escape :: ByteString
+escape = "%s"
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -287,7 +307,7 @@ foreign import ccall unsafe "openlog" _openlog :: CString -> CInt -> CInt -> IO 
 foreign import ccall unsafe "closelog" _closelog :: IO ()
 
 -- |A process has a log priority mask that determines which calls to
--- 'syslog' may be logged. All other calls will be ignored. Logging is
+-- syslog may be logged. All other calls will be ignored. Logging is
 -- enabled for the priorities that have the corresponding bit set in
 -- mask. The initial mask is such that logging is enabled for all
 -- priorities. This function sets this logmask for the calling process,
@@ -304,7 +324,7 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- string strerror(errno). A trailing newline may be added if needed.
 
 _syslog :: CInt -> CString -> IO ()
-_syslog int str = useAsCString "%s" $ \esc -> _syslogUnescaped int esc str
+_syslog int str = useAsCString escape $ \e -> _syslogUnescaped int e str
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt

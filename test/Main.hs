@@ -19,6 +19,6 @@ config = defaultConfig
     }
 
 main :: IO ()
-main = withSyslog config $ do
-    syslogTo [MAIL, NEWS] [Debug, Error] "%s%d hsyslog is working :)"
-    syslog [Error] "hsyslog is not working :("
+main = withSyslogTo config $ \syslogTo -> do
+    syslogTo [NEWS] [Debug, Error] "%s%d hsyslog is working :)"
+    syslogTo [MAIL] [Error] "hsyslog is not working :("
