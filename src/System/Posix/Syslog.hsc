@@ -256,9 +256,12 @@ withSyslog config f =
       closeSyslog
       (useAsCString escape $ \e -> f (syslog e []))
 
--- |The type of function provided by 'withSyslog'.
+-- |The type of logging function provided by 'withSyslog'.
 
-type SyslogFn = [Priority] -> ByteString -> IO ()
+type SyslogFn
+  =  [Priority] -- ^ the priorities under which to log
+  -> ByteString -- ^ the message to log
+  -> IO ()
 
 -- |Like 'withSyslog' but provides a function for logging to specific
 -- facilities per message rather than the default facilities in your
@@ -273,7 +276,11 @@ withSyslogTo config f =
 
 -- |The type of function provided by 'withSyslogTo'.
 
-type SyslogToFn = [Facility] -> [Priority] -> ByteString -> IO ()
+type SyslogToFn
+  =  [Facility] -- ^ the facilities to log to
+  -> [Priority] -- ^ the priorities under which to log
+  -> ByteString -- ^ the message to log
+  -> IO ()
 
 openSyslog :: SyslogConfig -> IO ()
 openSyslog (SyslogConfig ident opts facs mask) = do
