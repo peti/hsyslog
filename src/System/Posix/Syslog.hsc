@@ -32,6 +32,8 @@ module System.Posix.Syslog
   , PriorityMask (..)
   , fromPriorityMask
     -- * Haskell API to syslog
+  , SyslogConfig (..)
+  , defaultConfig
   , withSyslog
   , syslog
   , syslogTo
@@ -222,31 +224,53 @@ fromPriorityMask (Mask pris) = bitsOrWith (_LOG_MASK . fromPriority) pris
 fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
 fromPriorityMask NoMask = 0
 
--- |Bracket an 'IO' computation between calls to '_openlog',
--- '_setlogmask', and '_closelog'. The function can be used as follows:
+data SyslogConfig = SyslogConfig
+  { identifier        :: ByteString   -- ^ string appended to each log message
+  , options           :: [Option]     -- ^ options for syslog behavior
+  , defaultFacilities :: [Facility]   -- ^ facilities logged to when none are provided
+  , priorityMask      :: PriorityMask -- ^ filter by priority which messages are logged
+  }
+  deriving (Eq, Show)
+
+-- |A practical default syslog config. You'll at least want to change the
+-- identifier.
+
+defaultConfig :: SyslogConfig
+defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
+
+-- |Bracket an 'IO' computation between calls to '_openlog', '_setlogmask', and
+-- '_closelog'. The function can be used as follows:
 --
--- > main = withSyslog "my-ident" [PID, PERROR] [USER] (UpTo Debug) $ do
+-- > main = withSyslog defaultConfig $ do
 -- >          putStrLn "huhu"
 -- >          syslog [Debug] "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: ByteString -> [Option] -> [Facility] -> PriorityMask -> IO a -> IO a
-withSyslog ident opts facs mask f = useAsCString ident $ \p ->
-    bracket_ (_openlog p optsInt facsInt >> _setlogmask priInt) (_closelog) f
+withSyslog :: SyslogConfig -> IO a -> IO a
+withSyslog config = bracket_ (openSyslog config) closeSyslog
+
+openSyslog :: SyslogConfig -> IO ()
+openSyslog (SyslogConfig ident opts facs mask) = do
+    useAsCString ident (\i -> _openlog i cOpts cFacs)
+    _setlogmask cMask
+    return ()
   where
-    facsInt = bitsOrWith fromFacility facs
-    priInt = fromPriorityMask mask
-    optsInt = bitsOrWith fromOption opts
+    cFacs = bitsOrWith fromFacility facs
+    cMask = fromPriorityMask mask
+    cOpts = bitsOrWith fromOption opts
+
+closeSyslog :: IO ()
+closeSyslog = _closelog
 
 -- |Log a message with the given priorities.
 
 syslog :: [Priority] -> ByteString -> IO ()
 syslog = syslogTo []
 
--- |Like 'syslog', but to the specified facilities instead of the default
--- assigned during 'withSyslog'
+-- |Like 'syslog', but to the specified facilities instead of the defaults
+-- assigned in your 'SyslogConfig'
 
 syslogTo :: [Facility] -> [Priority] -> ByteString -> IO ()
 syslogTo facs pris msg = useAsCString msg (_syslog (makePri facs pris))

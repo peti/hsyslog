@@ -12,12 +12,13 @@ import System.Posix.Syslog
  only "hsyslog is working" should appear in your test log output.
 --}
 
+config :: SyslogConfig
+config = defaultConfig
+    { options = [PERROR, NDELAY]
+    , priorityMask = Mask [Debug, Alert]
+    }
+
 main :: IO ()
-main =
-    withSyslog "hsyslog" options facility priority $ do
-      syslogTo [MAIL, NEWS] [Debug, Alert] "%s%d hsyslog is working :)"
-      syslog [Error] "hsyslog is not working :("
-  where
-    options = [PERROR, NDELAY]
-    facility = [USER]
-    priority = (Mask [Debug, Alert])
+main = withSyslog config $ do
+    syslogTo [MAIL, NEWS] [Debug, Error] "%s%d hsyslog is working :)"
+    syslog [Error] "hsyslog is not working :("
