@@ -249,12 +249,11 @@ defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
-withSyslog :: SyslogConfig -> (SyslogFn -> IO a) -> IO a
+withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
-    bracket_
-      (openSyslog config)
-      closeSyslog
-      (useAsCString escape $ \e -> f (syslog e []))
+    bracket_ (openSyslog config) closeSyslog $ do
+      useAsCString escape (\e -> f $ syslog e [])
+      return ()
 
 -- |The type of logging function provided by 'withSyslog'.
 
@@ -267,12 +266,11 @@ type SyslogFn
 -- facilities per message rather than the default facilities in your
 -- 'SyslogConfig'.
 
-withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO a) -> IO a
+withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
 withSyslogTo config f =
-    bracket_
-      (openSyslog config)
-      closeSyslog
-      (useAsCString escape $ \e -> f (syslog e))
+    bracket_ (openSyslog config) closeSyslog $ do
+      useAsCString escape (f . syslog)
+      return ()
 
 -- |The type of function provided by 'withSyslogTo'.
 
