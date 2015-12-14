@@ -86,7 +86,7 @@ data Priority
   | Notice      -- ^ normal but significant condition
   | Info        -- ^ informational
   | Debug       -- ^ debug-level messages
-  deriving ( Eq, Show, Read
+  deriving ( Bounded, Enum, Eq, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
            , Generic
 #endif
@@ -137,7 +137,7 @@ data Facility
   | LOCAL5      -- ^ reserved for local use
   | LOCAL6      -- ^ reserved for local use
   | LOCAL7      -- ^ reserved for local use
-  deriving (Eq, Show, Read)
+  deriving (Bounded, Enum, Eq, Show, Read)
 
 toFacility :: CInt -> Facility
 toFacility #{const LOG_KERN}      = KERN
@@ -193,7 +193,7 @@ data Option
   | NDELAY    -- ^ don't delay open
   | NOWAIT    -- ^ don't wait for console forks: DEPRECATED
   | PERROR    -- ^ log to 'stderr' as well (might be a no-op on some systems)
-  deriving (Eq, Show)
+  deriving (Bounded, Enum, Eq, Show)
 
 toOption :: CInt -> Option
 toOption #{const LOG_PID}     = PID
