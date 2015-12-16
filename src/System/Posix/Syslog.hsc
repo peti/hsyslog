@@ -31,13 +31,22 @@ module System.Posix.Syslog
   , fromOption
   , PriorityMask (..)
   , fromPriorityMask
-    -- * Haskell API to syslog
+    -- * Configuring syslog
   , SyslogConfig (..)
   , defaultConfig
+    -- * The safe Haskell API to syslog
   , withSyslog
   , SyslogFn
   , withSyslogTo
   , SyslogToFn
+    -- * The unsafe Haskell API to syslog
+    -- | Using these functions provides no guarantee that the call to
+    -- 'openSyslog' has been made. For use only when an architecture cannot
+    -- support the 'withSyslog' bracketing.
+  , openSyslog
+  , closeSyslog
+  , syslog
+  , syslogTo
     -- * Low-level C functions
   , _openlog
   , _closelog
@@ -252,7 +261,7 @@ defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
 withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
     bracket_ (openSyslog config) closeSyslog $ do
-      useAsCString escape (\e -> f $ syslog e [])
+      useAsCString escape (\e -> f $ syslogSafe e [])
       return ()
 
 -- |The type of logging function provided by 'withSyslog'.
@@ -269,7 +278,7 @@ type SyslogFn
 withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
 withSyslogTo config f =
     bracket_ (openSyslog config) closeSyslog $ do
-      useAsCString escape (f . syslog)
+      useAsCString escape (f . syslogSafe)
       return ()
 
 -- |The type of function provided by 'withSyslogTo'.
@@ -293,12 +302,11 @@ openSyslog (SyslogConfig ident opts facs mask) = do
 closeSyslog :: IO ()
 closeSyslog = _closelog
 
-syslog :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
-syslog esc facs pris msg =
-    useAsCString msg (_syslogUnescaped (makePri facs pris) esc)
+syslog :: SyslogFn
+syslog = syslogTo []
 
-escape :: ByteString
-escape = "%s"
+syslogTo :: SyslogToFn
+syslogTo facs pris msg = useAsCString msg (_syslog (makePri facs pris))
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -329,7 +337,7 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- string strerror(errno). A trailing newline may be added if needed.
 
 _syslog :: CInt -> CString -> IO ()
-_syslog int str = useAsCString escape $ \e -> _syslogUnescaped int e str
+_syslog int str = useAsCString escape $ \e -> _syslogSafe int e str
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
@@ -344,5 +352,12 @@ makePri :: [Facility] -> [Priority] -> CInt
 makePri facs pris =
     _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
 
-foreign import ccall unsafe "syslog" _syslogUnescaped
+foreign import ccall unsafe "syslog" _syslogSafe
   :: CInt -> CString -> CString -> IO ()
+
+syslogSafe :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
+syslogSafe esc facs pris msg =
+    useAsCString msg (_syslogSafe (makePri facs pris) esc)
+
+escape :: ByteString
+escape = "%s"
