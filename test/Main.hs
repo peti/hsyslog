@@ -14,7 +14,7 @@ instance Arbitrary Facility where
   arbitrary = arbitraryBoundedEnum
 
 instance Arbitrary ByteString where
-  arbitrary = pack <$> arbitrary
+  arbitrary = fmap pack arbitrary
 
 main :: IO ()
 main = do
