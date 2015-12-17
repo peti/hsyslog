@@ -248,7 +248,7 @@ data SyslogConfig = SyslogConfig
 -- identifier.
 
 defaultConfig :: SyslogConfig
-defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
+defaultConfig = SyslogConfig "hsyslog" [ODELAY] [USER] NoMask
 
 -- |Bracket an 'IO' computation between calls to '_openlog', '_setlogmask', and
 -- '_closelog', and provide a logging function which can be used as follows:
