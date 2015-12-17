@@ -34,19 +34,21 @@ module System.Posix.Syslog
     -- * Configuring syslog
   , SyslogConfig (..)
   , defaultConfig
-    -- * The safe Haskell API to syslog
+    -- * The preferred Haskell API to syslog
+    -- | These are also the most performant calls to syslog, with the minimum
+    -- amount of 'CString' copying necessary.
   , withSyslog
   , SyslogFn
   , withSyslogTo
   , SyslogToFn
     -- * The unsafe Haskell API to syslog
-    -- | Using these functions provides no guarantee that the call to
-    -- 'openSyslog' has been made. For use only when an architecture cannot
-    -- support the 'withSyslog' bracketing.
-  , openSyslog
-  , closeSyslog
-  , syslog
-  , syslogTo
+    -- | Using these functions provides no guarantee that a call to '_openlog'
+    -- has been made. For use only when an architecture cannot support the
+    -- 'withSyslog' bracketing.
+  , openSyslogUnsafe
+  , closeSyslogUnsafe
+  , syslogUnsafe
+  , syslogToUnsafe
     -- * Low-level C functions
   , _openlog
   , _closelog
@@ -260,8 +262,8 @@ defaultConfig = SyslogConfig "hsyslog" [NDELAY] [USER] NoMask
 
 withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
-    bracket_ (openSyslog config) closeSyslog $ do
-      useAsCString escape (\e -> f $ syslogSafe e [])
+    bracket_ (openSyslogUnsafe config) closeSyslogUnsafe $ do
+      useAsCString escape (\e -> f $ syslogEscaped e [])
       return ()
 
 -- |The type of logging function provided by 'withSyslog'.
@@ -277,8 +279,8 @@ type SyslogFn
 
 withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
 withSyslogTo config f =
-    bracket_ (openSyslog config) closeSyslog $ do
-      useAsCString escape (f . syslogSafe)
+    bracket_ (openSyslogUnsafe config) closeSyslogUnsafe $ do
+      useAsCString escape (f . syslogEscaped)
       return ()
 
 -- |The type of function provided by 'withSyslogTo'.
@@ -289,8 +291,8 @@ type SyslogToFn
   -> ByteString -- ^ the message to log
   -> IO ()
 
-openSyslog :: SyslogConfig -> IO ()
-openSyslog (SyslogConfig ident opts facs mask) = do
+openSyslogUnsafe :: SyslogConfig -> IO ()
+openSyslogUnsafe (SyslogConfig ident opts facs mask) = do
     useAsCString ident (\i -> _openlog i cOpts cFacs)
     _setlogmask cMask
     return ()
@@ -299,14 +301,14 @@ openSyslog (SyslogConfig ident opts facs mask) = do
     cMask = fromPriorityMask mask
     cOpts = bitsOrWith fromOption opts
 
-closeSyslog :: IO ()
-closeSyslog = _closelog
+closeSyslogUnsafe :: IO ()
+closeSyslogUnsafe = _closelog
 
-syslog :: SyslogFn
-syslog = syslogTo []
+syslogUnsafe :: SyslogFn
+syslogUnsafe = syslogToUnsafe []
 
-syslogTo :: SyslogToFn
-syslogTo facs pris msg = useAsCString msg (_syslog (makePri facs pris))
+syslogToUnsafe :: SyslogToFn
+syslogToUnsafe facs pris msg = useAsCString msg (_syslog (makePri facs pris))
 
 -- |Open a connection to the system logger for a program. The string
 -- identifier passed as the first argument is prepended to every
@@ -337,7 +339,7 @@ foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
 -- string strerror(errno). A trailing newline may be added if needed.
 
 _syslog :: CInt -> CString -> IO ()
-_syslog int str = useAsCString escape $ \e -> _syslogSafe int e str
+_syslog int msg = useAsCString escape $ \e -> _syslogEscaped int e msg
 
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
@@ -352,12 +354,12 @@ makePri :: [Facility] -> [Priority] -> CInt
 makePri facs pris =
     _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
 
-foreign import ccall unsafe "syslog" _syslogSafe
+foreign import ccall unsafe "syslog" _syslogEscaped
   :: CInt -> CString -> CString -> IO ()
 
-syslogSafe :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
-syslogSafe esc facs pris msg =
-    useAsCString msg (_syslogSafe (makePri facs pris) esc)
+syslogEscaped :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
+syslogEscaped esc facs pris msg =
+    useAsCString msg (_syslogEscaped (makePri facs pris) esc)
 
 escape :: ByteString
 escape = "%s"
