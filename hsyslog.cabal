@@ -1,5 +1,5 @@
 Name:                   hsyslog
-Version:                3
+Version:                4
 Copyright:              Copyright (c) 2004-2015 by Peter Simons
 License:                BSD3
 License-File:           LICENSE
@@ -12,15 +12,28 @@ Synopsis:               FFI interface to syslog(3) from POSIX.1-2001
 Description:            This library provides FFI bindings to syslog(3) from POSIX.1-2001.
                         See <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html> for
                         further details.
-Cabal-Version:          >= 1.6
+Cabal-Version:          >= 1.8
 Build-Type:             Simple
-Tested-With:            GHC >= 6.10.4 && <= 7.8.3
+Tested-With:            GHC >= 6.10.4 && <= 7.10.2
 
 Source-Repository head
   Type:                 git
   Location:             git://github.com/peti/hsyslog.git
 
 Library
+  Hs-Source-Dirs:       src
   Build-Depends:        base >= 3 && < 5
-  Extensions:           ForeignFunctionInterface
+                      , bytestring == 0.10.*
+  Extensions:           CApiFFI
+                      , ForeignFunctionInterface
+                      , OverloadedStrings
   Exposed-Modules:      System.Posix.Syslog
+
+Test-Suite tests
+  Hs-Source-Dirs:       test
+  Main-Is:              Main.hs
+  Type:                 exitcode-stdio-1.0
+  Build-Depends:        base
+                      , bytestring
+                      , hsyslog
+                      , QuickCheck
