@@ -43,10 +43,7 @@ module System.Posix.Syslog
   , SyslogToFn
     -- * The unsafe Haskell API to syslog
     -- | Using these functions provides no guarantee that a call to '_openlog'
-    -- has been made. For use only when an architecture cannot support the
-    -- 'withSyslog' bracketing.
-  , openSyslogUnsafe
-  , closeSyslogUnsafe
+    -- has been made.
   , syslogUnsafe
   , syslogToUnsafe
     -- * Low-level C functions
@@ -262,9 +259,10 @@ defaultConfig = SyslogConfig "hsyslog" [ODELAY] [USER] NoMask
 
 withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
-    bracket_ (openSyslogUnsafe config) closeSyslogUnsafe $ do
-      useAsCString escape (\e -> f $ syslogEscaped e [])
-      return ()
+    useAsCString (identifier config) $ \cIdent ->
+      bracket_ (openSyslogWithIdent config cIdent) closeSyslog $ do
+        useAsCString escape (f . flip syslogEscaped [])
+        return ()
 
 -- |The type of logging function provided by 'withSyslog'.
 
@@ -279,9 +277,10 @@ type SyslogFn
 
 withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
 withSyslogTo config f =
-    bracket_ (openSyslogUnsafe config) closeSyslogUnsafe $ do
-      useAsCString escape (f . syslogEscaped)
-      return ()
+    useAsCString (identifier config) $ \cIdent ->
+      bracket_ (openSyslogWithIdent config cIdent) closeSyslog $ do
+        useAsCString escape (f . syslogEscaped)
+        return ()
 
 -- |The type of function provided by 'withSyslogTo'.
 
@@ -290,19 +289,6 @@ type SyslogToFn
   -> [Priority] -- ^ the priorities under which to log
   -> ByteString -- ^ the message to log
   -> IO ()
-
-openSyslogUnsafe :: SyslogConfig -> IO ()
-openSyslogUnsafe (SyslogConfig ident opts facs mask) = do
-    useAsCString ident (\i -> _openlog i cOpts cFacs)
-    _setlogmask cMask
-    return ()
-  where
-    cFacs = bitsOrWith fromFacility facs
-    cMask = fromPriorityMask mask
-    cOpts = bitsOrWith fromOption opts
-
-closeSyslogUnsafe :: IO ()
-closeSyslogUnsafe = _closelog
 
 syslogUnsafe :: SyslogFn
 syslogUnsafe = syslogToUnsafe []
@@ -363,3 +349,16 @@ syslogEscaped esc facs pris msg =
 
 escape :: ByteString
 escape = "%s"
+
+openSyslogWithIdent :: SyslogConfig -> CString -> IO ()
+openSyslogWithIdent config cIdent = do
+    _openlog cIdent cOpts cFacs
+    _setlogmask cMask
+    return ()
+  where
+    cFacs = bitsOrWith fromFacility $ defaultFacilities config
+    cMask = fromPriorityMask $ priorityMask config
+    cOpts = bitsOrWith fromOption $ options config
+
+closeSyslog :: IO ()
+closeSyslog = _closelog
