@@ -259,10 +259,9 @@ defaultConfig = SyslogConfig "hsyslog" [ODELAY] [USER] NoMask
 
 withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
-    useAsCString (identifier config) $ \cIdent ->
-      bracket_ (openSyslogWithIdent config cIdent) closeSyslog $ do
-        useAsCString escape (f . flip syslogEscaped [])
-        return ()
+    withinOpenCloseSyslog config $ do
+      useAsCString escape (f . flip syslogEscaped [])
+      return ()
 
 -- |The type of logging function provided by 'withSyslog'.
 
@@ -277,10 +276,9 @@ type SyslogFn
 
 withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
 withSyslogTo config f =
-    useAsCString (identifier config) $ \cIdent ->
-      bracket_ (openSyslogWithIdent config cIdent) closeSyslog $ do
-        useAsCString escape (f . syslogEscaped)
-        return ()
+    withinOpenCloseSyslog config $ do
+      useAsCString escape (f . syslogEscaped)
+      return ()
 
 -- |The type of function provided by 'withSyslogTo'.
 
@@ -350,15 +348,22 @@ syslogEscaped esc facs pris msg =
 escape :: ByteString
 escape = "%s"
 
-openSyslogWithIdent :: SyslogConfig -> CString -> IO ()
-openSyslogWithIdent config cIdent = do
-    _openlog cIdent cOpts cFacs
-    _setlogmask cMask
-    return ()
-  where
-    cFacs = bitsOrWith fromFacility $ defaultFacilities config
-    cMask = fromPriorityMask $ priorityMask config
-    cOpts = bitsOrWith fromOption $ options config
+withinOpenCloseSyslog :: SyslogConfig -> IO () -> IO ()
+withinOpenCloseSyslog config run =
+    useAsCString (identifier config) $ \cIdent ->
+      let
 
-closeSyslog :: IO ()
-closeSyslog = _closelog
+        open :: IO ()
+        open = do
+            _openlog cIdent cOpts cFacs
+            _setlogmask cMask
+            return ()
+          where
+            cFacs = bitsOrWith fromFacility $ defaultFacilities config
+            cMask = fromPriorityMask $ priorityMask config
+            cOpts = bitsOrWith fromOption $ options config
+
+        close :: IO ()
+        close = _closelog
+
+      in bracket_ open close run
