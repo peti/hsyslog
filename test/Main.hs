@@ -30,8 +30,8 @@ main = do
 --}
 outputTest :: IO ()
 outputTest = withSyslog config $ \syslog -> do
-    syslog [Debug, Error] "%s%d hsyslog is working :)"
-    syslog [Error] "hsyslog is not working :("
+    syslog [] [Debug, Error] "%s%d hsyslog is working :)"
+    syslog [] [Error] "hsyslog is not working :("
   where
     config = defaultConfig
         { options = [PERROR, NDELAY]
@@ -39,10 +39,9 @@ outputTest = withSyslog config $ \syslog -> do
         }
 
 dontExplodeTest :: IO ()
-dontExplodeTest = withSyslogTo defaultConfig $ \syslogTo -> do
+dontExplodeTest = withSyslog defaultConfig $ \syslog -> do
     let
       prop_dontExplode :: [Facility] -> [Priority] -> ByteString -> Property
       prop_dontExplode facs pris msg = ioProperty $ do
-          syslogTo facs pris msg
+          syslog facs pris msg
           return succeeded
-    quickCheck prop_dontExplode

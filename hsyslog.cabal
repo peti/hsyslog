@@ -9,9 +9,8 @@ Homepage:               http://github.com/peti/hsyslog
 Bug-Reports:            http://github.com/peti/hsyslog/issues
 Category:               Foreign
 Synopsis:               FFI interface to syslog(3) from POSIX.1-2001
-Description:            This library provides FFI bindings to syslog(3) from POSIX.1-2001.
-                        See <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html> for
-                        further details.
+Description:            This library provides FFI bindings to syslog(3) from
+                        <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html POSIX.1-2001>.
 Cabal-Version:          >= 1.8
 Build-Type:             Simple
 Tested-With:            GHC > 7.6 && < 8.1
