@@ -47,9 +47,12 @@ module System.Posix.Syslog
   , _setlogmask
   , _syslog
     -- ** Low-level C macros
+  , _LOG_MAKEPRI
   , _LOG_MASK
   , _LOG_UPTO
-  , _LOG_MAKEPRI
+    -- * Utilities
+    -- | Low-level utilities for syslog-related tools
+  , makePri
   ) where
 
 import Control.Exception (bracket_)
@@ -238,10 +241,14 @@ fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
 fromPriorityMask NoMask = 0
 
 data SyslogConfig = SyslogConfig
-  { identifier        :: ByteString   -- ^ string appended to each log message
-  , options           :: [Option]     -- ^ options for syslog behavior
-  , defaultFacilities :: [Facility]   -- ^ facilities logged to when none are provided
-  , priorityMask      :: PriorityMask -- ^ filter by priority which messages are logged
+  { identifier :: ByteString
+    -- ^ string appended to each log message
+  , options :: [Option]
+    -- ^ options for syslog behavior
+  , defaultFacility :: Facility
+    -- ^ facility logged to when none are provided (currently unsupported)
+  , priorityMask :: PriorityMask
+    -- ^ filter by priority which messages are logged
   }
   deriving (Eq, Show)
 
@@ -249,22 +256,14 @@ data SyslogConfig = SyslogConfig
 -- identifier.
 
 defaultConfig :: SyslogConfig
-defaultConfig = SyslogConfig "hsyslog" [ODELAY] [USER] NoMask
+defaultConfig = SyslogConfig "hsyslog" [ODELAY] USER NoMask
 
 -- | Bracket an 'IO' computation between calls to '_openlog', '_setlogmask',
 -- and '_closelog', providing a logging function which can be used as follows:
 --
 -- > main = withSyslog defaultConfig $ \syslog -> do
 -- >          putStrLn "huhu"
--- >          syslog [User] [Debug] "huhu"
---
--- Don't need per-message facilities? Passing an empty list logs to the default
--- facilities in your `SyslogConfig`.
---
--- > main = withSyslog defaultConfig $ \syslogWithFacs -> do
--- >          let syslog = syslogWithFacs []
--- >          putStrLn "huhu"
--- >          syslog [Debug] "huhu"
+-- >          syslog USER Debug "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
@@ -275,11 +274,11 @@ withSyslog config f =
       let
         open :: IO ()
         open = do
-            _openlog cIdent cOpts cFacs
+            _openlog cIdent cOpts cFac
             _setlogmask cMask
             return ()
           where
-            cFacs = bitsOrWith fromFacility $ defaultFacilities config
+            cFac = fromFacility $ defaultFacility config
             cMask = fromPriorityMask $ priorityMask config
             cOpts = bitsOrWith fromOption $ options config
 
@@ -296,8 +295,8 @@ withSyslog config f =
 -- | The type of function provided by 'withSyslog'.
 
 type SyslogFn
-  =  [Facility] -- ^ the facilities to log to
-  -> [Priority] -- ^ the priorities under which to log
+  =  Facility -- ^ the facility to log to
+  -> Priority -- ^ the priority under which to log
   -> ByteString -- ^ the message to log
   -> IO ()
 
@@ -305,7 +304,7 @@ type SyslogFn
 -- unpredictable results.
 
 syslogUnsafe :: SyslogFn
-syslogUnsafe facs pris msg = useAsCString msg (_syslog (makePri facs pris))
+syslogUnsafe fac pri msg = useAsCString msg (_syslog (makePri fac pri))
 
 -- foreign imports
 
@@ -319,9 +318,16 @@ foreign import ccall unsafe "syslog" _syslogEscaped
 _syslog :: CInt -> CString -> IO ()
 _syslog int msg = useAsCString escape $ \e -> _syslogEscaped int e msg
 
+foreign import capi "syslog.h LOG_MAKEPRI" _LOG_MAKEPRI :: CInt -> CInt -> CInt
 foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
 foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
-foreign import capi "syslog.h LOG_MAKEPRI" _LOG_MAKEPRI :: CInt -> CInt -> CInt
+
+-- utilities
+
+-- | Calculate the full priority value of a 'Facility' and 'Priority'
+
+makePri :: Facility -> Priority -> CInt
+makePri fac pri = _LOG_MAKEPRI (fromFacility fac) (fromPriority pri)
 
 -- internal functions
 
@@ -331,10 +337,6 @@ bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
 escape :: ByteString
 escape = "%s"
 
-makePri :: [Facility] -> [Priority] -> CInt
-makePri facs pris =
-    _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
-
-syslogEscaped :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
-syslogEscaped esc facs pris msg =
-    useAsCString msg (_syslogEscaped (makePri facs pris) esc)
+syslogEscaped :: CString -> Facility -> Priority -> ByteString -> IO ()
+syslogEscaped esc fac pri msg =
+    useAsCString msg (_syslogEscaped (makePri fac pri) esc)
