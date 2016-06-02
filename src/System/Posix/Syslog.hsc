@@ -15,7 +15,7 @@
    Portability :  Posix
 
    FFI bindings to syslog(3) from
-   <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html POSIX.1-2001>.
+   <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/syslog.h.html POSIX.1-2008>.
 -}
 
 module System.Posix.Syslog
@@ -41,7 +41,7 @@ module System.Posix.Syslog
   , syslogUnsafe
     -- * Low-level C functions
     -- | See the
-    -- <http://www.gnu.org/software/libc/manual/html_node/Submitting-Syslog-Messages.html GNU libc documentation>.
+    -- <http://pubs.opengroup.org/onlinepubs/9699919799/functions/closelog.html POSIX.1-2008 documentation>.
   , _openlog
   , _closelog
   , _setlogmask
