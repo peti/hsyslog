@@ -15,7 +15,7 @@
    Portability :  Posix
 
    FFI bindings to syslog(3) from
-   <http://www.opengroup.org/onlinepubs/009695399/basedefs/syslog.h.html POSIX.1-2001>.
+   <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/syslog.h.html POSIX.1-2008>.
 -}
 
 module System.Posix.Syslog
@@ -35,29 +35,24 @@ module System.Posix.Syslog
   , SyslogConfig (..)
   , defaultConfig
     -- * The preferred Haskell API to syslog
-    -- | These are also the most performant calls to syslog, with the minimum
-    -- amount of 'CString' copying necessary.
   , withSyslog
   , SyslogFn
-  , withSyslogTo
-  , SyslogToFn
     -- * The unsafe Haskell API to syslog
-    -- | Using these functions provides no guarantee that a call to '_openlog'
-    -- has been made.
   , syslogUnsafe
-  , syslogToUnsafe
     -- * Low-level C functions
+    -- | See the
+    -- <http://pubs.opengroup.org/onlinepubs/9699919799/functions/closelog.html POSIX.1-2008 documentation>.
   , _openlog
   , _closelog
   , _setlogmask
   , _syslog
     -- ** Low-level C macros
-    -- | See the
-    -- <http://www.gnu.org/software/libc/manual/html_node/Submitting-Syslog-Messages.html GNU libc documentation>
-    -- for their intended usage.
+  , _LOG_MAKEPRI
   , _LOG_MASK
   , _LOG_UPTO
-  , _LOG_MAKEPRI
+    -- * Utilities
+    -- | Low-level utilities for syslog-related tools
+  , makePri
   ) where
 
 import Control.Exception (bracket_)
@@ -83,7 +78,7 @@ import GHC.Generics (Generic)
 #define LOG_PERROR 0
 #endif
 
--- |Log messages have a priority attached.
+-- | Log messages have a priority attached.
 
 data Priority
   = Emergency   -- ^ system is unusable
@@ -121,8 +116,8 @@ fromPriority Notice    = #{const LOG_NOTICE}
 fromPriority Info      = #{const LOG_INFO}
 fromPriority Debug     = #{const LOG_DEBUG}
 
--- |Syslog distinguishes various system facilities. Most
--- applications should log in 'USER'.
+-- | Syslog distinguishes various system facilities. Most applications should
+-- log in 'USER'.
 
 data Facility
   = KERN        -- ^ kernel messages
@@ -145,7 +140,11 @@ data Facility
   | LOCAL5      -- ^ reserved for local use
   | LOCAL6      -- ^ reserved for local use
   | LOCAL7      -- ^ reserved for local use
-  deriving (Bounded, Enum, Eq, Show, Read)
+  deriving ( Bounded, Enum, Eq, Show, Read
+#if __GLASGOW_HASKELL__ >= 706
+           , Generic
+#endif
+           )
 
 toFacility :: CInt -> Facility
 toFacility #{const LOG_KERN}      = KERN
@@ -192,7 +191,7 @@ fromFacility LOCAL5    = #{const LOG_LOCAL5}
 fromFacility LOCAL6    = #{const LOG_LOCAL6}
 fromFacility LOCAL7    = #{const LOG_LOCAL7}
 
--- |'withSyslog' options for the syslog service.
+-- | 'withSyslog' options for the syslog service.
 
 data Option
   = PID       -- ^ log the pid with each message
@@ -201,7 +200,11 @@ data Option
   | NDELAY    -- ^ don't delay open
   | NOWAIT    -- ^ don't wait for console forks: DEPRECATED
   | PERROR    -- ^ log to 'stderr' as well (might be a no-op on some systems)
-  deriving (Bounded, Enum, Eq, Show)
+  deriving ( Bounded, Enum, Eq, Show, Read
+#if __GLASGOW_HASKELL__ >= 706
+           , Generic
+#endif
+           )
 
 toOption :: CInt -> Option
 toOption #{const LOG_PID}     = PID
@@ -220,13 +223,17 @@ fromOption NDELAY  = #{const LOG_NDELAY}
 fromOption NOWAIT  = #{const LOG_NOWAIT}
 fromOption PERROR  = #{const LOG_PERROR}
 
--- |`withSyslog` options for the priority mask
+-- | 'withSyslog' options for the priority mask.
 
 data PriorityMask
   = NoMask          -- ^ allow all messages thru
   | Mask [Priority] -- ^ allow only messages with the priorities listed
   | UpTo Priority   -- ^ allow only messages down to and including the specified priority
-  deriving (Eq, Show)
+  deriving ( Eq, Show, Read
+#if __GLASGOW_HASKELL__ >= 706
+           , Generic
+#endif
+           )
 
 fromPriorityMask :: PriorityMask -> CInt
 fromPriorityMask (Mask pris) = bitsOrWith (_LOG_MASK . fromPriority) pris
@@ -234,136 +241,102 @@ fromPriorityMask (UpTo pri) = _LOG_UPTO $ fromPriority pri
 fromPriorityMask NoMask = 0
 
 data SyslogConfig = SyslogConfig
-  { identifier        :: ByteString   -- ^ string appended to each log message
-  , options           :: [Option]     -- ^ options for syslog behavior
-  , defaultFacilities :: [Facility]   -- ^ facilities logged to when none are provided
-  , priorityMask      :: PriorityMask -- ^ filter by priority which messages are logged
+  { identifier :: ByteString
+    -- ^ string appended to each log message
+  , options :: [Option]
+    -- ^ options for syslog behavior
+  , defaultFacility :: Facility
+    -- ^ facility logged to when none are provided (currently unsupported)
+  , priorityMask :: PriorityMask
+    -- ^ filter by priority which messages are logged
   }
   deriving (Eq, Show)
 
--- |A practical default syslog config. You'll at least want to change the
+-- | A practical default syslog config. You'll at least want to change the
 -- identifier.
 
 defaultConfig :: SyslogConfig
-defaultConfig = SyslogConfig "hsyslog" [ODELAY] [USER] NoMask
+defaultConfig = SyslogConfig "hsyslog" [ODELAY] USER NoMask
 
--- |Bracket an 'IO' computation between calls to '_openlog', '_setlogmask', and
--- '_closelog', and provide a logging function which can be used as follows:
+-- | Bracket an 'IO' computation between calls to '_openlog', '_setlogmask',
+-- and '_closelog', providing a logging function which can be used as follows:
 --
 -- > main = withSyslog defaultConfig $ \syslog -> do
 -- >          putStrLn "huhu"
--- >          syslog [Debug] "huhu"
+-- >          syslog USER Debug "huhu"
 --
 -- Note that these are /process-wide/ settings, so multiple calls to
 -- this function will interfere with each other in unpredictable ways.
 
 withSyslog :: SyslogConfig -> (SyslogFn -> IO ()) -> IO ()
 withSyslog config f =
-    withinOpenCloseSyslog config $ do
-      useAsCString escape (f . flip syslogEscaped [])
-      return ()
-
--- |The type of logging function provided by 'withSyslog'.
-
-type SyslogFn
-  =  [Priority] -- ^ the priorities under which to log
-  -> ByteString -- ^ the message to log
-  -> IO ()
-
--- |Like 'withSyslog' but provides a function for logging to specific
--- facilities per message rather than the default facilities in your
--- 'SyslogConfig'.
-
-withSyslogTo :: SyslogConfig -> (SyslogToFn -> IO ()) -> IO ()
-withSyslogTo config f =
-    withinOpenCloseSyslog config $ do
-      useAsCString escape (f . syslogEscaped)
-      return ()
-
--- |The type of function provided by 'withSyslogTo'.
-
-type SyslogToFn
-  =  [Facility] -- ^ the facilities to log to
-  -> [Priority] -- ^ the priorities under which to log
-  -> ByteString -- ^ the message to log
-  -> IO ()
-
-syslogUnsafe :: SyslogFn
-syslogUnsafe = syslogToUnsafe []
-
-syslogToUnsafe :: SyslogToFn
-syslogToUnsafe facs pris msg = useAsCString msg (_syslog (makePri facs pris))
-
--- |Open a connection to the system logger for a program. The string
--- identifier passed as the first argument is prepended to every
--- message, and is typically set to the program name. The behavior is
--- unspecified by POSIX.1-2008 if that identifier is 'nullPtr'.
-
-foreign import ccall unsafe "openlog" _openlog :: CString -> CInt -> CInt -> IO ()
-
--- |Close the descriptor being used to write to the system logger.
-
-foreign import ccall unsafe "closelog" _closelog :: IO ()
-
--- |A process has a log priority mask that determines which calls to
--- syslog may be logged. All other calls will be ignored. Logging is
--- enabled for the priorities that have the corresponding bit set in
--- mask. The initial mask is such that logging is enabled for all
--- priorities. This function sets this logmask for the calling process,
--- and returns the previous mask. If the mask argument is 0, the current
--- logmask is not modified.
-
-foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
-
--- |Generate a log message, which will be distributed by @syslogd(8)@.
--- The priority argument is formed by ORing the facility and the level
--- values (explained below). The remaining arguments are a format, as in
--- printf(3) and any arguments required by the format, except that the
--- two character sequence %m will be replaced by the error message
--- string strerror(errno). A trailing newline may be added if needed.
-
-_syslog :: CInt -> CString -> IO ()
-_syslog int msg = useAsCString escape $ \e -> _syslogEscaped int e msg
-
-foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
-foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
-foreign import capi "syslog.h LOG_MAKEPRI" _LOG_MAKEPRI :: CInt -> CInt -> CInt
-
--- internal functions
-
-bitsOrWith :: (Bits b, Num b) => (a -> b) -> [a] -> b
-bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
-
-makePri :: [Facility] -> [Priority] -> CInt
-makePri facs pris =
-    _LOG_MAKEPRI (bitsOrWith fromFacility facs) (bitsOrWith fromPriority pris)
-
-foreign import ccall unsafe "syslog" _syslogEscaped
-  :: CInt -> CString -> CString -> IO ()
-
-syslogEscaped :: CString -> [Facility] -> [Priority] -> ByteString -> IO ()
-syslogEscaped esc facs pris msg =
-    useAsCString msg (_syslogEscaped (makePri facs pris) esc)
-
-escape :: ByteString
-escape = "%s"
-
-withinOpenCloseSyslog :: SyslogConfig -> IO () -> IO ()
-withinOpenCloseSyslog config run =
     useAsCString (identifier config) $ \cIdent ->
       let
-
         open :: IO ()
         open = do
-            _openlog cIdent cOpts cFacs
+            _openlog cIdent cOpts cFac
             _setlogmask cMask
             return ()
           where
-            cFacs = bitsOrWith fromFacility $ defaultFacilities config
+            cFac = fromFacility $ defaultFacility config
             cMask = fromPriorityMask $ priorityMask config
             cOpts = bitsOrWith fromOption $ options config
 
         close :: IO ()
         close = _closelog
 
-      in bracket_ open close run
+        run :: IO ()
+        run = do
+            useAsCString escape (f . syslogEscaped)
+            return ()
+      in
+        bracket_ open close run
+
+-- | The type of function provided by 'withSyslog'.
+
+type SyslogFn
+  =  Facility -- ^ the facility to log to
+  -> Priority -- ^ the priority under which to log
+  -> ByteString -- ^ the message to log
+  -> IO ()
+
+-- | Provides no guarantee that a call to '_openlog' has been made, inviting
+-- unpredictable results.
+
+syslogUnsafe :: SyslogFn
+syslogUnsafe fac pri msg = useAsCString msg (_syslog (makePri fac pri))
+
+-- foreign imports
+
+foreign import ccall unsafe "openlog" _openlog :: CString -> CInt -> CInt -> IO ()
+foreign import ccall unsafe "closelog" _closelog :: IO ()
+foreign import ccall unsafe "setlogmask" _setlogmask :: CInt -> IO CInt
+
+foreign import ccall unsafe "syslog" _syslogEscaped
+  :: CInt -> CString -> CString -> IO ()
+
+_syslog :: CInt -> CString -> IO ()
+_syslog int msg = useAsCString escape $ \e -> _syslogEscaped int e msg
+
+foreign import capi "syslog.h LOG_MAKEPRI" _LOG_MAKEPRI :: CInt -> CInt -> CInt
+foreign import capi "syslog.h LOG_MASK" _LOG_MASK :: CInt -> CInt
+foreign import capi "syslog.h LOG_UPTO" _LOG_UPTO :: CInt -> CInt
+
+-- utilities
+
+-- | Calculate the full priority value of a 'Facility' and 'Priority'
+
+makePri :: Facility -> Priority -> CInt
+makePri fac pri = _LOG_MAKEPRI (fromFacility fac) (fromPriority pri)
+
+-- internal functions
+
+bitsOrWith :: (Bits b, Num b) => (a -> b) -> [a] -> b
+bitsOrWith f = foldl' (\bits x -> f x .|. bits) 0
+
+escape :: ByteString
+escape = "%s"
+
+syslogEscaped :: CString -> Facility -> Priority -> ByteString -> IO ()
+syslogEscaped esc fac pri msg =
+    useAsCString msg (_syslogEscaped (makePri fac pri) esc)
