@@ -13,7 +13,7 @@ Description:            This library provides FFI bindings to syslog(3) from
                         <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/syslog.h.html POSIX.1-2008>.
 Cabal-Version:          >= 1.8
 Build-Type:             Simple
-Tested-With:            GHC > 7.6 && < 8.1
+Tested-With:            GHC > 7.8 && < 8.1
 
 Source-Repository head
   Type:                 git
