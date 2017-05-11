@@ -1,48 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (main) where
 
-import Data.ByteString.Char8
-import System.Posix.Syslog
-import Test.QuickCheck
-import Test.QuickCheck.Property
-
-instance Arbitrary Priority where
-  arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary Facility where
-  arbitrary = arbitraryBoundedEnum
-
-instance Arbitrary ByteString where
-  arbitrary = fmap pack arbitrary
+import Test.DocTest
+import System.Environment
+import Data.Maybe
 
 main :: IO ()
 main = do
-  outputTest
-  dontExplodeTest
-
-{--
- This isn't a true test. Instead, we're passing the PERROR option (meaning
- syslog will also send messages to STDERR), sending a message that should be
- whitelisted by the priority mask, and sending a message that should be
- blacklisted by the priority mask. If hsyslog is working correctly, then only
- "hsyslog is working" should appear in your test log output.
---}
-outputTest :: IO ()
-outputTest = withSyslog config $ \syslog -> do
-    syslog USER Debug "%s%d hsyslog is working :)"
-    syslog USER Error "hsyslog is not working :("
-  where
-    config = defaultConfig
-        { options = [PERROR, NDELAY]
-        , priorityMask = Mask [Debug, Alert]
-        }
-
-dontExplodeTest :: IO ()
-dontExplodeTest = withSyslog defaultConfig $ \syslog -> do
-    let
-      prop_dontExplode :: Facility -> Priority -> ByteString -> Property
-      prop_dontExplode fac pri msg = ioProperty $ do
-          syslog fac pri msg
-          return succeeded
-    quickCheck prop_dontExplode
+  distDir <- fromMaybe "dist" `fmap` lookupEnv "HASKELL_DIST_DIR"
+  let hscFilesDir = distDir ++ "/build"
+  doctest [ "-i" ++ hscFilesDir, "src" ]

@@ -1,38 +1,50 @@
-Name:                   hsyslog
-Version:                4
-Copyright:              Copyright (c) 2004-2016 by Peter Simons
-License:                BSD3
-License-File:           LICENSE
-Author:                 Peter Simons, John Lato, Jonathan Childress
-Maintainer:             Peter Simons <simons@cryp.to>
-Homepage:               http://github.com/peti/hsyslog
-Bug-Reports:            http://github.com/peti/hsyslog/issues
-Category:               Foreign
-Synopsis:               FFI interface to syslog(3) from POSIX.1-2001
-Description:            This library provides FFI bindings to syslog(3) from
-                        <http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/syslog.h.html POSIX.1-2008>.
-Cabal-Version:          >= 1.8
-Build-Type:             Simple
-Tested-With:            GHC > 7.8 && < 8.1
+name:           hsyslog
+version:        5
+cabal-version:  >= 1.8
+build-type:     Simple
+license:        BSD3
+license-file:   LICENSE
+copyright:      Copyright (c) 2004-2017 by Peter Simons
+author:         Peter Simons, John Lato, Jonathan Childress
+maintainer:     Peter Simons <simons@cryp.to>
+homepage:       http://github.com/peti/hsyslog
+bug-reports:    http://github.com/peti/hsyslog/issues
+synopsis:       FFI interface to syslog(3) from POSIX.1-2001
+category:       Foreign
+tested-with:    GHC >7.6 && <8.1
 
-Source-Repository head
-  Type:                 git
-  Location:             git://github.com/peti/hsyslog.git
+extra-source-files:
+  c-bits/simple-syslog.c
+  c-bits/make-log-mask.c
 
-Library
-  Hs-Source-Dirs:       src
-  Build-Depends:        base >= 3 && < 5
-                      , bytestring == 0.10.*
-  Extensions:           CApiFFI
-                      , ForeignFunctionInterface
-                      , OverloadedStrings
-  Exposed-Modules:      System.Posix.Syslog
+description:
+  A Haskell interface to @syslog(3)@ as specified in
+  <http://pubs.opengroup.org/onlinepubs/9699919799/functions/syslog.html POSIX.1-2008>.
+  The entire public API lives in "System.Posix.Syslog". There is a set of exposed
+  modules available underneath that one, which contain various implementation details
+  that may be useful to other developers who want to implement syslog-related
+  functionality. /Users/ of @syslog@, however, do not need them.
 
-Test-Suite tests
-  Hs-Source-Dirs:       test
-  Main-Is:              Main.hs
-  Type:                 exitcode-stdio-1.0
-  Build-Depends:        base
-                      , bytestring
-                      , hsyslog
-                      , QuickCheck
+source-repository head
+  type:     git
+  location: git://github.com/peti/hsyslog.git
+
+library
+  exposed-modules:  System.Posix.Syslog
+                    System.Posix.Syslog.Facility
+                    System.Posix.Syslog.Functions
+                    System.Posix.Syslog.LogMask
+                    System.Posix.Syslog.Options
+                    System.Posix.Syslog.Priority
+  build-depends:    base >= 4.6 && < 5
+  other-extensions: ForeignFunctionInterface, DeriveGeneric
+  hs-source-dirs:   src
+  c-sources:        c-bits/simple-syslog.c
+                    c-bits/make-log-mask.c
+
+test-suite hsyslog-test
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: test
+  build-depends:  hsyslog, base, doctest
+  ghc-options:    -threaded
