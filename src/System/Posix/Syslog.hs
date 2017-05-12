@@ -10,6 +10,10 @@
    details that may be useful to other developers who want to implement
    syslog-related functionality. /Users/ of syslog, however, do not need those
    modules; "System.Posix.Syslog" has all you'll need.
+
+   Check out the
+   <https://github.com/peti/hsyslog/blob/master/example/Main.hs example program>
+   that demonstrates how to use this library.
 -}
 
 module System.Posix.Syslog
@@ -90,7 +94,8 @@ closelog = _closelog
 --
 -- @
 --   withSyslog ident opts facil f =
---     'withCString' ident $ \ptr -> 'bracket_' (openlog ptr opts facil) closelog f--
+--     'withCString' ident $ \ptr ->
+--       'bracket_' (openlog ptr opts facil) closelog f
 -- @
 
 withSyslog :: String -> [Option] -> Facility -> IO a -> IO a
