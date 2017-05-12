@@ -10,8 +10,9 @@ import Data.ByteString.Unsafe ( unsafeUseAsCStringLen )
 import Foreign.C.String ( CStringLen, withCStringLen )
 
 -- This class allows us to log normal Strings, ByteStrings, and pretty much any
--- other type to syslog without. It abstracts the information of how to convert
--- the given type into a CStringLen that can be passed to syslog.
+-- other type to syslog without any explicit conversions. It abstracts the
+-- information of how to convert the given type into a CStringLen that can be
+-- passed to syslog.
 
 class LogMessage m where
   toCStringLen :: m -> (CStringLen -> IO a) -> IO a
