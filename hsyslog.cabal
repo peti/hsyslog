@@ -1,7 +1,7 @@
 name:           hsyslog
 version:        5
-cabal-version:  >= 1.8
-build-type:     Simple
+cabal-version:  >= 1.24
+build-type:     Custom
 license:        BSD3
 license-file:   LICENSE
 copyright:      Copyright (c) 2004-2017 by Peter Simons
@@ -29,6 +29,11 @@ description:
   <https://github.com/peti/hsyslog/blob/master/example/Main.hs examples> directory of
   this package.
 
+custom-setup
+  setup-depends: base >= 4 && <5,
+                 Cabal,
+                 cabal-doctest >= 1 && <1.1
+
 source-repository head
   type:     git
   location: git://github.com/peti/hsyslog.git
@@ -49,13 +54,15 @@ library
   hs-source-dirs:   src
   c-sources:        c-bits/simple-syslog.c
                     c-bits/make-log-mask.c
+  default-language: Haskell2010
 
-test-suite hsyslog-test
+test-suite doctests
   type:           exitcode-stdio-1.0
-  main-is:        Main.hs
+  main-is:        doctests.hs
   hs-source-dirs: test
   build-depends:  hsyslog, base, doctest
   ghc-options:    -threaded
+  default-language: Haskell2010
 
 executable hsyslog-example
   main-is:              Main.hs
@@ -66,3 +73,4 @@ executable hsyslog-example
     other-extensions:   TypeSynonymInstances, FlexibleInstances
   else
     buildable:          False
+  default-language: Haskell2010
