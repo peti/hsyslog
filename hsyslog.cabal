@@ -55,6 +55,7 @@ library
   c-sources:        c-bits/simple-syslog.c
                     c-bits/make-log-mask.c
   default-language: Haskell2010
+  build-tools:      hsc2hs
 
 test-suite doctests
   type:           exitcode-stdio-1.0
