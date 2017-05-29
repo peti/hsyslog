@@ -31,7 +31,7 @@ description:
 
 custom-setup
   setup-depends: base >= 4 && <5,
-                 Cabal >= 1.24,
+                 Cabal,
                  cabal-doctest >= 1 && <1.1
 
 source-repository head
@@ -65,12 +65,12 @@ test-suite doctests
   default-language: Haskell2010
 
 executable hsyslog-example
-  main-is:              Main.hs
-  hs-source-dirs:       example
-  build-depends:        base, hsyslog, bytestring
+  main-is:            Main.hs
+  hs-source-dirs:     example
   if flag(install-examples)
-    buildable:          True
-    other-extensions:   TypeSynonymInstances, FlexibleInstances
+    buildable:        True
+    build-depends:    base, hsyslog, bytestring
+    other-extensions: TypeSynonymInstances, FlexibleInstances
   else
-    buildable:          False
-  default-language: Haskell2010
+    buildable:        False
+  default-language:   Haskell2010
