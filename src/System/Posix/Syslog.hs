@@ -62,7 +62,7 @@ syslog :: Maybe Facility -- ^ Categorize this message as belonging into the
                          -- /does/ contain a @\\0@ byte, then the message ends
                          -- there regardless of what the length argument says.
        -> IO ()
-syslog facil prio (ptr,len) = assert (len >= 0) $ do
+syslog facil prio (ptr,len) = assert (len >= 0) $
   _syslog (maybe 0 fromFacility facil) (fromPriority prio) ptr (fromIntegral len)
 
 -- | This function configures the process-wide hidden state of the system's

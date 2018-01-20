@@ -22,7 +22,7 @@ import Foreign.C.Types
 -- representation suitable for calling '_setlogmask'.
 
 toLogMask :: [Priority] -> CInt
-toLogMask = foldr (.|.) 0 . map (_logMask . fromPriority)
+toLogMask = foldr ((.|.) . _logMask . fromPriority) 0
 
 -- | Decode the the system-dependent binary representation returned by
 -- '_setlogmask' back into a set of logging priorities.
