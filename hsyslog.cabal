@@ -11,8 +11,8 @@ homepage:       http://github.com/peti/hsyslog
 bug-reports:    http://github.com/peti/hsyslog/issues
 synopsis:       FFI interface to syslog(3) from POSIX.1-2001
 category:       Foreign
-tested-with:    GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3
-              , GHC == 8.0.2, GHC == 8.2.2
+tested-with:    GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2
+              , GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
 
 extra-source-files:
   c-bits/simple-syslog.c
