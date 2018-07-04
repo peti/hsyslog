@@ -72,7 +72,7 @@ syslog facil prio (ptr,len) = assert (len >= 0) $
 -- properly initialized within its scope.
 
 openlog :: CString      -- ^ An identifier to prepend to all log messages,
-                        -- typically the name of the programm. Note that the
+                        -- typically the name of the program. Note that the
                         -- memory that contains this name must remain valid
                         -- until the pointer provided here is released by
                         -- calling 'closelog'.

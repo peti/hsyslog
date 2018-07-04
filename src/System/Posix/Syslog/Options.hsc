@@ -20,13 +20,13 @@ import GHC.Generics ( Generic )
 #include <syslog.h>
 
 -- | The function 'openlog' allows one to configure a handful of process-wide
--- options that modify the bahavior of the 'syslog' funcion. These options are
+-- options that modify the behavior of the 'syslog' function. These options are
 -- 'pid', 'cons', 'odelay', and 'ndelay'.
 
 data Option = LogPID              -- ^ Log the pid with each message.
             | Console             -- ^ Log on the console if errors occur while sending messages.
             | DelayedOpen         -- ^ Delay all initialization until first @syslog()@ call (default).
-            | ImmediateOpen       -- ^ Initalize the syslog system immediately.
+            | ImmediateOpen       -- ^ Initialize the syslog system immediately.
             | DontWaitForChildren -- ^ The syslog system should not attempt to wait for child
                                   -- process it may have created. This option is required by
                                   -- applications who enable @SIGCHLD@ themselves.
