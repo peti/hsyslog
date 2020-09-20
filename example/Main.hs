@@ -1,5 +1,5 @@
 -- These extensions are required so that we can define a class instance for "String".
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main ( main ) where
 
