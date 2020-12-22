@@ -51,11 +51,12 @@ import Foreign.C
 -- 'ByteStrings' can be logged in the same way with the 'unsafeUseAsCStringLen'
 -- function from @Data.ByteString.Unsafe@, which extracts a 'CStringLen' from
 -- the 'ByteString' in constant time (no copying!).
+syslog ::
+  Maybe Facility
+  -- ^ Set the <https://tools.ietf.org/html/rfc5424#section-6.2.1> syslog facility
+  -- for the message. If left unspecified, the process-wide default will be used, which
+  -- tends to be 'User' by default.
 
-syslog :: Maybe Facility -- ^ Categorize this message as belonging into the
-                         -- given system facility. If left unspecified, the
-                         -- process-wide default will be used, which tends to
-                         -- be 'User' by default.
        -> Priority       -- ^ Log with the specified priority.
        -> CStringLen     -- ^ The actual log message. The string does not need
                          -- to be terminated by a @\\0@ byte. If the string
