@@ -34,13 +34,13 @@ import Control.Exception ( assert, bracket_ )
 import Data.Bits
 import Foreign.C
 
--- |Log the given text message via @syslog(3)@. Please note that log messages
--- are committed to the log /verbatim/ --- @printf()@-style text formatting
--- features offered by the underlying system function are /not/ available. If
--- your log message reads @"%s"@, then that string is exactly what will be
--- written to the log. Also, log messages cannot contain @\\0@ bytes. If they
--- do, all content following that byte will be cut off because the C function
--- assumes that the string ends there.
+-- | Log the message via the @syslog(3)@. Message expected to be formed and
+-- committed to the log /verbatim/. @printf()@-style text formatting
+-- features offered by the underlying system function are /not/ available
+-- (for example, if log message reads @"%s"@, that string is exactly what will
+-- be written to the log). C function terminates the string (message)
+-- on the @\\0@ byte, so it dops all further message content, so messages
+-- should not contain the @\\0@ byte.
 --
 -- The Haskell 'String' type can be easily logged with 'withCStringLen':
 --
