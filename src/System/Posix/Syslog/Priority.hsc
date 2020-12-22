@@ -36,7 +36,6 @@ import GHC.Generics ( Generic )
 -- >>> maximum [minBound..maxBound] :: Priority
 -- Debug
 
-              | Critical        -- ^ critical conditions
               | Error           -- ^ error conditions
               | Warning         -- ^ warning conditions
               | Notice          -- ^ normal but significant condition
@@ -52,6 +51,12 @@ data Priority
   -- ^ Something in OS should be attended to & corrected immediately:
   -- vital OS subsystem fails (networking, filesystem), OS state resulted in
   -- unrecoverable state and data loss. Reserved for OS critical parts.
+
+  | Critical
+  -- ^ Critical conditions: unexpected errors, error throws that result in
+  -- application crashes, coredumps.
+  -- Example:
+  -- A crash of a data base (with possible data loss): <https://web.archive.org/web/20200511072730/https://www.postgresql.org/docs/12/runtime-config-logging.html#RUNTIME-CONFIG-SEVERITY-LEVELS> is this level of severity.
   deriving (Show, Read, Eq, Ord, Bounded, Enum, Generic)
 
 -- | Translate a 'Priority' into the system-dependent identifier that's used by
