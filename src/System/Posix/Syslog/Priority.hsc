@@ -36,7 +36,6 @@ import GHC.Generics ( Generic )
 -- >>> maximum [minBound..maxBound] :: Priority
 -- Debug
 
-              | Alert           -- ^ action must be taken immediately
               | Critical        -- ^ critical conditions
               | Error           -- ^ error conditions
               | Warning         -- ^ warning conditions
@@ -48,6 +47,11 @@ data Priority
   = Emergency
   -- ^ Operational System is unusable.
   -- This level should not be used by applications.
+
+  | Alert
+  -- ^ Something in OS should be attended to & corrected immediately:
+  -- vital OS subsystem fails (networking, filesystem), OS state resulted in
+  -- unrecoverable state and data loss. Reserved for OS critical parts.
   deriving (Show, Read, Eq, Ord, Bounded, Enum, Generic)
 
 -- | Translate a 'Priority' into the system-dependent identifier that's used by
