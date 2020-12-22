@@ -36,7 +36,6 @@ import GHC.Generics ( Generic )
 -- >>> maximum [minBound..maxBound] :: Priority
 -- Debug
 
-              | Error           -- ^ error conditions
               | Warning         -- ^ warning conditions
               | Notice          -- ^ normal but significant condition
               | Info            -- ^ informational
@@ -57,6 +56,10 @@ data Priority
   -- application crashes, coredumps.
   -- Example:
   -- A crash of a data base (with possible data loss): <https://web.archive.org/web/20200511072730/https://www.postgresql.org/docs/12/runtime-config-logging.html#RUNTIME-CONFIG-SEVERITY-LEVELS> is this level of severity.
+
+  | Error
+  -- ^ Error conditions: error that is handled, application closes
+  -- and returns the error code.
   deriving (Show, Read, Eq, Ord, Bounded, Enum, Generic)
 
 -- | Translate a 'Priority' into the system-dependent identifier that's used by
