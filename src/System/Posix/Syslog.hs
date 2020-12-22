@@ -57,12 +57,20 @@ syslog ::
   -- for the message. If left unspecified, the process-wide default will be used, which
   -- tends to be 'User' by default.
 
-       -> Priority       -- ^ Log with the specified priority.
        -> CStringLen     -- ^ The actual log message. The string does not need
                          -- to be terminated by a @\\0@ byte. If the string
                          -- /does/ contain a @\\0@ byte, then the message ends
                          -- there regardless of what the length argument says.
        -> IO ()
+  -> Priority
+  -- ^ Log with the specified priority Syslog severity:
+  -- <https://tools.ietf.org/html/rfc5424#section-6.2.1>
+  -- For logging, monitoring, alerting, troubleshooting purposes it is
+  -- important to set severity of messages right, please read explanations in
+  -- the RFC 5424, or follow short explanations at
+  -- Priority level section of Arch Wiki:
+  -- <https://wiki.archlinux.org/index.php/Systemd/Journal#Priority_level>.
+
 syslog facil prio (ptr,len) = assert (len >= 0) $
   _syslog (maybe 0 fromFacility facil) (fromPriority prio) ptr (fromIntegral len)
 
