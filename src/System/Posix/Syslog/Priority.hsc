@@ -36,7 +36,6 @@ import GHC.Generics ( Generic )
 -- >>> maximum [minBound..maxBound] :: Priority
 -- Debug
 
-              | Debug           -- ^ debug-level messages
 data Priority
 
   = Emergency
@@ -69,6 +68,9 @@ data Priority
 
   | Info
   -- ^ Default level. Normal operational messages that require no action.
+
+  | Debug
+  -- ^ Information useful for debugging the application processes.
   deriving (Show, Read, Eq, Ord, Bounded, Enum, Generic)
 
 -- | Translate a 'Priority' into the system-dependent identifier that's used by
