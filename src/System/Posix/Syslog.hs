@@ -51,6 +51,7 @@ import Foreign.C
 -- 'ByteStrings' can be logged in the same way with the 'unsafeUseAsCStringLen'
 -- function from @Data.ByteString.Unsafe@, which extracts a 'CStringLen' from
 -- the 'ByteString' in constant time (no copying!).
+
 syslog ::
   Maybe Facility
   -- ^ Set the <https://tools.ietf.org/html/rfc5424#section-6.2.1> syslog facility
@@ -76,8 +77,8 @@ syslog facil prio (ptr,len) = assert (len >= 0) $
 
 -- | This function configures the process-wide hidden state of the system's
 -- syslog engine. It's probably a bad idea to call this function anywhere
--- except at the very top of your program's 'main' function. And even then you
--- should probably prefer 'withSyslog' instead, which guarantees that syslog is
+-- except at the very top of program's 'main' function. And even then, instead
+-- of it, 'withSyslog' should be preferred, since it guarantees that syslog is
 -- properly initialized within its scope.
 
 openlog :: CString      -- ^ An identifier to prepend to all log messages,
