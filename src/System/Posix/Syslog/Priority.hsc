@@ -36,7 +36,6 @@ import GHC.Generics ( Generic )
 -- >>> maximum [minBound..maxBound] :: Priority
 -- Debug
 
-              | Warning         -- ^ warning conditions
               | Notice          -- ^ normal but significant condition
               | Info            -- ^ informational
               | Debug           -- ^ debug-level messages
@@ -60,6 +59,11 @@ data Priority
   | Error
   -- ^ Error conditions: error that is handled, application closes
   -- and returns the error code.
+
+  | Warning
+  -- ^ Action of solution is expected/required from the user,
+  -- but so far application can/would function further,
+  -- error may occur somewhere further if the action is not taken.
   deriving (Show, Read, Eq, Ord, Bounded, Enum, Generic)
 
 -- | Translate a 'Priority' into the system-dependent identifier that's used by
