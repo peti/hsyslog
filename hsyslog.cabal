@@ -30,7 +30,7 @@ description:
 
 source-repository head
   type:     git
-  location: git://github.com/peti/hsyslog.git
+  location: https://github.com/peti/hsyslog.git
 
 Flag install-examples
   Description:   Build and install example programs.
